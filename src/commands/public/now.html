@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dontpanic — now</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <style>
+      :root {
+        --bg:#0c0d10; --panel:#141519; --card:#191b20; --inset:#0f1013; --guide:#0a1a12; --raised:#20222a;
+        --text:#e8eaee; --muted:#8b929c; --faint:#5c626c; --border:#212430; --border2:#2c3040;
+        --red:#e5555b; --amber:#e2a13a; --blue:#4e9bf0; --green:#3fb27f; --guidegreen:#5fe0a0; --violet:#a98bf0;
+        --accent:#5e6ad2; --accent-hi:#6e79dd; --accent-fg:#fff;
+        --r-lg:12px; --r-md:9px; --r-sm:7px;
+        --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.24);
+        --ring:0 0 0 2px rgba(94,106,210,.55);
+        --t:.13s ease;
+      }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--text);
+        font:14.5px/1.55 "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+        -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+      ::selection { background:rgba(94,106,210,.32); }
+      ::-webkit-scrollbar { width:10px; height:10px; }
+      ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:6px; border:2px solid var(--bg); }
+      ::-webkit-scrollbar-thumb:hover { background:#3a3f4d; }
+      ::-webkit-scrollbar-track { background:transparent; }
+      :focus-visible { outline:none; box-shadow:var(--ring); }
+      a, button { -webkit-tap-highlight-color:transparent; }
+
+      header { display:flex; align-items:center; gap:12px; padding:11px 20px; border-bottom:1px solid var(--border);
+        position:sticky; top:0; background:rgba(12,13,16,.72); backdrop-filter:saturate(1.4) blur(14px); z-index:5; }
+      header h1 { font-size:16px; margin:0; font-weight:750; letter-spacing:-.2px; } header h1 .dp{ color:var(--green); }
+      .tabs { display:flex; gap:4px; }
+      .tabs a{ color:var(--muted); font-size:13px; text-decoration:none; padding:4px 11px; border-radius:7px; }
+      .tabs a:hover{ color:var(--text); background:var(--card); }
+      .tabs a.on{ color:var(--text); font-weight:650; background:var(--card); }
+      .mode-toggle { background:var(--card); color:var(--muted); border:1px solid var(--border); border-radius:8px; padding:5px 11px; font-size:12px; font-weight:650; cursor:pointer; }
+      .mode-toggle:hover { border-color:var(--border2); }
+      .mode-toggle.on { border-color:var(--amber); color:var(--amber); background:rgba(232,161,58,.10); }
+      .unit-toggle { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+      .unit-toggle button { background:transparent; color:var(--faint); border:0; padding:5px 9px; font-size:12px; font-weight:700; cursor:pointer; }
+      .unit-toggle button.on { background:var(--card); color:var(--text); }
+      .unit-toggle button + button { border-left:1px solid var(--border); }
+      .spend { color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; border:1px solid var(--border); border-radius:20px; padding:4px 11px; }
+      .spend.warn-limit { border-color:var(--amber); color:var(--amber); }
+      .spend.over-limit { border-color:var(--red); color:var(--red); }
+      .cost { font-weight:600; opacity:.9; }
+      /* burndown supervisor bar */
+      .burnbar { display:flex; align-items:center; gap:11px; padding:9px 20px; font-size:13px;
+        background:rgba(226,161,58,.12); border-bottom:1px solid rgba(226,161,58,.5); position:sticky; top:0; z-index:4; backdrop-filter:blur(8px); }
+      .burnbar .bb-lab { font-weight:750; color:var(--amber); }
+      .burnbar .bb-mid { color:var(--muted); } .burnbar .bb-mid b { color:var(--text); font-variant-numeric:tabular-nums; }
+      .burnbar .bb-btn { background:var(--card); border:1px solid var(--border); color:var(--text); border-radius:7px; padding:5px 11px; font-size:12px; font-weight:600; cursor:pointer; }
+      .burnbar .bb-btn:hover { border-color:var(--border2); }
+      .burnbar .bb-btn.danger:hover { border-color:var(--red); color:var(--red); }
+      .burnbar .bb-btn:first-of-type { margin-left:auto; }
+      .refresh { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:13px; cursor:pointer; }
+      .refresh:hover { border-color:var(--border2); }
+
+      /* ---- day timeline ---- */
+      .timeline-wrap { border-bottom:1px solid var(--border); background:var(--inset); padding:10px 16px 11px; }
+      .timeline-head { font-size:11px; text-transform:uppercase; letter-spacing:.7px; color:var(--faint); margin:0 2px 8px; }
+      .timeline { display:flex; gap:7px; overflow-x:auto; padding-bottom:3px; }
+      .timeline::-webkit-scrollbar{ height:6px; } .timeline::-webkit-scrollbar-thumb{ background:var(--border2); border-radius:3px; }
+      .tchip { flex:none; display:flex; flex-direction:column; gap:3px; text-decoration:none; color:var(--muted);
+        background:var(--card); border:1px solid var(--border); border-radius:10px; padding:8px 12px; min-width:122px; transition:border-color .12s, color .12s; }
+      .tchip:hover { border-color:var(--border2); color:var(--text); }
+      .tchip .tm { font-size:10px; color:var(--faint); font-variant-numeric:tabular-nums; letter-spacing:.3px; }
+      .tchip .k { font-size:10px; text-transform:uppercase; letter-spacing:.4px; font-weight:700; display:flex; align-items:center; gap:5px; }
+      .tchip .dot { width:7px; height:7px; border-radius:50%; }
+      .tchip .n { font-size:12px; color:var(--text); font-variant-numeric:tabular-nums; }
+      .tchip .m { font-size:10.5px; color:var(--faint); }
+      .tchip.current { border-color:var(--amber); background:linear-gradient(180deg, rgba(232,161,58,.15), rgba(232,161,58,.05));
+        box-shadow:0 0 0 1px rgba(232,161,58,.35); }
+      .tchip.current .k { color:var(--amber); } .tchip.current .n { font-weight:700; color:#fff; }
+      .tchip.current .tm::after { content:" · now"; color:var(--amber); font-weight:700; }
+      .k-review .dot{ background:var(--amber);} .k-fix .dot{ background:var(--red);} .k-respond .dot{ background:var(--blue);} .k-merge .dot{ background:var(--green);} .k-assign .dot{ background:var(--violet);}
+      .tchip.mtg { background:rgba(79,157,240,.07); border-color:#2b3a52; } .tchip.mtg .k { color:var(--blue); }
+      .tchip.mtg.iv { background:rgba(169,139,240,.08); border-color:#3a2f55; } .tchip.mtg.iv .k { color:var(--violet); }
+      .tchip.calchip { border-style:dashed; border-color:#33405a; cursor:pointer; background:transparent; } .tchip.calchip .k{ color:var(--blue); } .tchip.calchip .m{ color:var(--blue); }
+
+      main { max-width:800px; margin:0 auto; padding:26px 26px 80px; }
+
+      /* ---- task identity ---- */
+      .entry-kicker { color:var(--guidegreen); font:12px ui-monospace,Menlo,monospace; letter-spacing:1px; }
+      .title { font-size:24px; font-weight:760; margin:6px 0 4px; line-height:1.25; letter-spacing:-.3px; }
+      .sub { color:var(--muted); font-size:13.5px; } .sub b{ color:var(--text); font-weight:600; }
+      .whynow { margin-top:13px; }
+
+      /* ---- hero: the next step + how to launch ---- */
+      .hero { background:linear-gradient(180deg, var(--panel), #12161e); border:1px solid var(--border2);
+        border-left:4px solid var(--blue); border-radius:14px; padding:18px 20px; margin:16px 0 4px; box-shadow:var(--shadow); }
+      .hero.k-review{ border-left-color:var(--amber); } .hero.k-fix{ border-left-color:var(--red); }
+      .hero.k-respond{ border-left-color:var(--blue); } .hero.k-merge{ border-left-color:var(--green); } .hero.k-assign{ border-left-color:var(--violet); }
+      .hero-step { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; margin-bottom:16px; }
+      .steplab { flex:none; font-size:10.5px; font-weight:750; text-transform:uppercase; letter-spacing:.7px; color:var(--green);
+        border:1px solid #24463a; background:rgba(63,178,127,.10); border-radius:6px; padding:3px 8px; }
+      .stepwhat { font-size:16px; font-weight:600; color:var(--text); line-height:1.4; }
+      .hero-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+      .hero-hint { color:var(--faint); font-size:12.5px; margin-top:13px; line-height:1.55; } .hero-hint b{ color:var(--muted); }
+      .prompt-disclose { margin-top:13px; }
+      .prompt-disclose summary { cursor:pointer; color:var(--muted); font-size:12.5px; list-style:none; display:inline-flex; align-items:center; gap:6px; }
+      .prompt-disclose summary::-webkit-details-marker { display:none; }
+      .prompt-disclose summary::before { content:"▸"; color:var(--faint); }
+      .prompt-disclose[open] summary::before { content:"▾"; }
+      .prompt-disclose summary:hover { color:var(--text); }
+
+      /* ---- panels + section headers ---- */
+      .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:15px 17px; margin-top:14px; }
+      .panel h3 { margin:0 0 12px; font-size:11px; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); font-weight:700; }
+      .panel h3 .nt{ color:var(--faint); text-transform:none; letter-spacing:0; font-weight:400; }
+
+      /* ---- entities ---- */
+      .entities { display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 2px; font-size:12.5px; }
+      .elink { display:inline-flex; align-items:center; gap:5px; text-decoration:none; color:var(--blue);
+        border:1px solid var(--border); border-radius:8px; padding:4px 10px; background:var(--card); }
+      .elink:hover { border-color:var(--blue); }
+      .elink.pending { color:var(--faint); pointer-events:none; }
+
+      /* ---- why-now / priority ---- */
+      .prio{ border-radius:10px; padding:11px 14px; font-size:13.5px; line-height:1.5; }
+      .prio.top{ background:rgba(63,178,127,.10); border:1px solid #24463a; }
+      .prio.rec{ background:rgba(232,161,58,.10); border:1px solid #4a3a24; }
+      .prio a{ color:var(--blue); text-decoration:none; font-weight:600; }
+      .prio-cur{ color:var(--muted); font-size:12.5px; margin-top:6px; }
+      .prio.ask{ background:transparent; border:0; padding:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+      .cost-note{ color:var(--faint); font-size:12px; }
+
+      .explainer p{ margin:0 0 10px; font-size:13.5px; line-height:1.65; } .explainer p:last-child{ margin-bottom:0; }
+      .atts{ display:flex; gap:6px; flex-wrap:wrap; }
+      .att{ font-size:12px; color:var(--muted); border:1px solid var(--border); border-radius:20px; padding:3px 10px; background:var(--card); }
+
+      /* ---- what's missing (gaps) ---- */
+      .gather-cta{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+      .gap{ background:var(--inset); border:1px solid #4a3a24; border-left:3px solid var(--amber); border-radius:8px; padding:10px 13px; margin-bottom:8px; }
+      .gap:last-child{ margin-bottom:0; }
+      .gap-t{ font-weight:650; font-size:13.5px; color:var(--amber); }
+      .gap-a{ font-size:13px; color:var(--text); margin-top:4px; }
+      .gap.ok{ border-color:#24463a; border-left-color:var(--green); color:var(--green); font-weight:600; }
+      .ungathered{ color:var(--faint); font-size:13px; }
+
+      /* ---- coach ---- */
+      .coachbox{ border-left:3px solid var(--violet); background:rgba(169,139,240,.08); border-radius:8px; padding:12px 15px; }
+      .coach-c{ color:var(--violet); font-weight:700; font-size:13.5px; margin-bottom:5px; }
+      .coach-n{ font-size:13.5px; line-height:1.65; }
+
+      /* ---- the Guide narrator (compact, secondary) ---- */
+      .guidebox { background:var(--guide); border:1px solid #163a25; border-radius:11px; padding:11px 14px; margin:16px 0 6px;
+        display:flex; gap:11px; align-items:flex-start; }
+      .guidebox .badge { flex:none; color:var(--guidegreen); font:10px ui-monospace,Menlo,monospace; letter-spacing:1px;
+        border:1px solid #1e5738; border-radius:5px; padding:3px 6px; margin-top:1px; }
+      .guidebox .say { color:#a9cbb8; font:12.5px/1.55 ui-monospace,Menlo,monospace; }
+
+      /* ---- forms + buttons ---- */
+      textarea { width:100%; min-height:88px; field-sizing:content; max-height:60vh; background:var(--inset); color:var(--text); border:1px solid var(--border);
+        border-radius:8px; padding:10px 12px; font:12.5px/1.55 ui-monospace,Menlo,monospace; resize:vertical; margin-top:10px; }
+      textarea:focus { outline:none; border-color:var(--blue); }
+      .hint { color:var(--faint); font-size:12px; margin-top:8px; line-height:1.55; }
+      .actions { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; align-items:center; }
+      .btn { border-radius:var(--r-md); padding:8px 15px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--border); text-decoration:none; display:inline-flex; align-items:center; gap:6px; color:var(--text); background:var(--card);
+        transition:background var(--t), border-color var(--t), box-shadow var(--t), transform var(--t); }
+      .btn:hover { border-color:var(--border2); background:var(--raised); }
+      .btn:active { transform:translateY(.5px); }
+      .btn.primary{ background:var(--accent); color:var(--accent-fg); border-color:var(--accent); box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 1px 2px rgba(0,0,0,.3); }
+      .btn.primary:hover{ background:var(--accent-hi); border-color:var(--accent-hi); }
+      .btn.amber{ background:var(--amber); color:#160f02; border-color:var(--amber); box-shadow:inset 0 1px 0 rgba(255,255,255,.14); }
+      .btn.amber:hover{ background:#eaad4c; border-color:#eaad4c; }
+      .btn.ghost{ background:transparent; color:var(--text); border-color:var(--border); }
+      .btn.ghost:hover{ border-color:var(--border2); background:var(--card); }
+      .btn.lg{ padding:11px 18px; font-size:14px; }
+      .agent-sel{ background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:12.5px; cursor:pointer; }
+      .copied { color:var(--green); font-size:12.5px; }
+
+      /* ---- agent monitor / inspect + states ---- */
+      .empty { text-align:center; color:var(--green); font-size:18px; padding:80px 0; }
+      .triage { text-align:center; color:var(--amber); font-size:18px; padding:90px 0 40px; }
+      .triage-sub { color:var(--muted); font-size:13px; margin-top:10px; }
+      .sk { height:16px; border-radius:var(--r-sm); margin:10px 0;
+        background:linear-gradient(90deg, var(--card) 25%, var(--raised) 37%, var(--card) 63%); background-size:400% 100%; animation:sweep 1.4s ease infinite; }
+      @keyframes sweep { from{ background-position:100% 0; } to{ background-position:0 0; } }
+      @keyframes pl { 50%{ opacity:.5; } }
+      .gathering{ color:var(--amber); animation:pl 1.2s infinite; }
+      .log { background:#0b0e13; border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+        font:12px/1.65 ui-monospace,Menlo,monospace; color:#9fb0c2; max-height:240px; overflow:auto; }
+      .log div{ padding:1px 0; }
+      /* ---- live streamed reasoning / tools / output ---- */
+      .stream { background:#0b0e13; border:1px solid var(--border); border-radius:8px; padding:8px 12px;
+        max-height:420px; overflow:auto; margin-top:10px; }
+      .stream:empty { display:none; }
+      .seg { padding:2px 0; font-size:12.5px; line-height:1.6; }
+      .seg.reasoning { white-space:pre-wrap; color:#9aa4b2; border-left:2px solid #2c3346; padding-left:10px; margin:4px 0; font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+      .seg.text { white-space:pre-wrap; color:var(--text); }
+      .seg.tool { display:inline-flex; align-items:center; gap:6px; color:var(--violet); font:11.5px ui-monospace,Menlo,monospace; background:rgba(169,139,240,.10); border:1px solid rgba(169,139,240,.25); border-radius:6px; padding:2px 8px; margin:3px 0; }
+      .stream-head { font-size:10.5px; text-transform:uppercase; letter-spacing:.6px; color:var(--faint); margin:2px 0 4px; display:flex; align-items:center; gap:7px; }
+      .stream-head .live { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 1.2s infinite; }
+      @keyframes pulse { 50%{ opacity:.3; } }
+      .verdict { display:inline-block; font-weight:700; padding:3px 10px; border-radius:var(--r-sm); margin-bottom:8px; text-transform:uppercase; font-size:11px; letter-spacing:.5px; border:1px solid transparent; }
+      .verdict.green{ background:rgba(63,178,127,.14); color:#5fd3a0; border-color:rgba(63,178,127,.32); }
+      .verdict.amber{ background:rgba(226,161,58,.14); color:var(--amber); border-color:rgba(226,161,58,.32); }
+      .verdict.muted{ background:var(--card); color:var(--muted); border-color:var(--border); }
+      .findings { margin:6px 0 0; padding-left:18px; font-size:13px; } .findings li{ margin-bottom:6px; }
+      .findings b{ color:var(--amber); font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+      .warn { color:var(--red); font-size:12.5px; }
+      .submit { margin-top:12px; display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+      .diff { background:#0b0e13; border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+        font:11.5px/1.5 ui-monospace,Menlo,monospace; color:#9fb0c2; max-height:440px; overflow:auto; white-space:pre; margin:0; }
+      .di-add{ color:var(--green); } .di-del{ color:var(--red); } .di-hunk{ color:var(--blue); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>don't<span class="dp">panic</span></h1>
+      <div class="tabs"><a class="on" href="/now">Now</a><a href="/">Board</a></div>
+      <button class="mode-toggle" id="autoToggle" style="margin-left:auto">🔒 You decide</button>
+      <span class="unit-toggle" id="unitToggle" title="Show spend as dollars or tokens"><button data-u="usd">$</button><button data-u="tok">tok</button></span>
+      <span class="spend" id="spend" title="Spent today vs your daily limit. Nothing runs automatically — you decide every spend.">◈ …</span>
+      <button class="refresh" id="resync" title="Pull fresh PRs from GitHub (free — GitHub only)">⟳ Resync</button>
+      <button class="refresh" id="refresh" title="Re-read already-synced data">Refresh</button>
+    </header>
+
+    <div id="burnbar" class="burnbar" style="display:none"></div>
+
+    <div class="timeline-wrap">
+      <div class="timeline-head" id="timeline-head">Your day</div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+    <main id="app">
+      <div class="sk" style="width:40%"></div><div class="sk" style="width:80%"></div><div class="sk" style="width:60%"></div>
+    </main>
+
+    <script>
+      const esc = (s) => (s || "").replace(/[&<>]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
+      // Render the live streamed breakdown: reasoning ¶, tool calls, output.
+      function renderStream(segments, running) {
+        if (!segments || !segments.length) return "";
+        const body = segments.map((s) => {
+          if (s.kind === "tool") return `<div class="seg tool">↪ ${esc(s.text)}</div>`;
+          if (s.kind === "reasoning") return `<div class="seg reasoning">${esc(s.text.trim())}</div>`;
+          return `<div class="seg text">${esc(s.text)}</div>`;
+        }).join("");
+        const head = `<div class="stream-head">${running ? '<span class="live"></span>reasoning · live' : "reasoning + output"}</div>`;
+        return head + `<div class="stream" data-stream>${body}</div>`;
+      }
+      // Preserve stream scroll across the poll re-render: follow the newest tokens only if
+      // the user was already at the bottom; otherwise keep their position (they're reading up).
+      function captureStream() {
+        const el = document.querySelector("[data-stream]");
+        if (!el) return null;
+        return { atBottom: el.scrollHeight - el.scrollTop - el.clientHeight < 28, top: el.scrollTop };
+      }
+      function restoreStream(s) {
+        const el = document.querySelector("[data-stream]");
+        if (!el) return;
+        el.scrollTop = !s || s.atBottom ? el.scrollHeight : s.top;
+      }
+      const repoTag = (s) => s;
+      const KINDCLS = { Review: "k-review", "Fix CI": "k-fix", Respond: "k-respond", Merge: "k-merge", Assign: "k-assign" };
+      const TURNCLS = { mine_review:"k-review", mine_respond:"k-respond", mine_fix:"k-fix", ready_merge:"k-merge", mine_request_review:"k-assign" };
+      const DONE = {
+        mine_review: "you submit a review verdict (approve / request changes) on this PR.",
+        mine_respond: "the reviewer's threads are addressed and pushed.",
+        mine_fix: "CI is green on this PR.",
+        ready_merge: "this PR is merged.",
+        mine_request_review: "a reviewer is assigned.",
+      };
+      // Who's actually blocked — sets the honest one-liner under the title.
+      const SUB = {
+        mine_review: "someone's waiting on your review",
+        mine_respond: "the author is waiting on your changes",
+        mine_fix: "your CI is red — you're the only one blocked",
+        ready_merge: "approved & green — ready for you to merge",
+        mine_request_review: "needs a reviewer assigned",
+      };
+      let CUR_TASK = null, CUR_MEETING = null;
+      async function renderTimeline(currentSel, currentMeetingId, withCal) {
+        CUR_TASK = currentSel; CUR_MEETING = currentMeetingId;
+        const plan = await (await fetch("/api/plan" + (withCal ? "?cal=1" : ""))).json();
+        const head = document.getElementById("timeline-head");
+        const fh = Math.floor(plan.focusMins / 60), fm = plan.focusMins % 60;
+        head.textContent =
+          `${plan.date} · ~${fh ? fh + "h " : ""}${fm}m focus` +
+          (plan.calendar ? ` · ${plan.meetingCount} meeting${plan.meetingCount === 1 ? "" : "s"}` : "") +
+          ` · court-zero ~${plan.courtZero}` +
+          (plan.deferred ? ` · ${plan.deferred} pushed to tomorrow` : "");
+        const firstTask = plan.day.find((d) => d.type === "task");
+        const curNum = currentSel ? currentSel.split("#")[1] : (currentMeetingId ? null : (firstTask ? String(firstTask.number) : null));
+        const calChip = plan.calendar ? "" :
+          `<a class="tchip calchip" id="calChip" title="Fetch your real meetings — a paid agent call"><span class="tm">＋</span><span class="k">calendar</span><span class="n">add your day</span><span class="m cost" data-cost="meeting" data-short="1">~$0.20</span></a>`;
+        document.getElementById("timeline").innerHTML = calChip + plan.day.map((d) => {
+          if (d.type === "meeting") {
+            const iv = d.kind === "interview";
+            const t = d.title.length > 17 ? d.title.slice(0, 16) + "…" : d.title;
+            const cur = d.id && d.id === currentMeetingId;
+            return `<a class="tchip mtg ${iv ? "iv" : ""} ${cur ? "current" : ""}" href="/now?meeting=${encodeURIComponent(d.id)}" title="${esc(d.title)}">
+              <span class="tm">${esc(d.start)}</span>
+              <span class="k">▣ ${iv ? "interview" : "meeting"}</span>
+              <span class="n">${esc(t)}</span>
+              <span class="m">${d.mins}m</span></a>`;
+          }
+          const sel = d.shortRepo + "#" + d.number;
+          const cur = String(d.number) === String(curNum);
+          const cls = KINDCLS[d.kind] || "";
+          return `<a class="tchip ${cls} ${cur ? "current" : ""}" href="/now?task=${encodeURIComponent(sel)}" title="${esc(d.title)}">
+            <span class="tm">${esc(d.start)}</span>
+            <span class="k"><span class="dot"></span>${esc(d.kind)}</span>
+            <span class="n">${esc(repoTag(d.shortRepo))}#${d.number}</span>
+            <span class="m">~${d.mins}m</span></a>`;
+        }).join("");
+        const cc = document.getElementById("calChip");
+        // Remember that calendar is loaded so it persists across task/meeting navigation
+        // (the gatherDay call is cached, so re-loading it on each page is free).
+        if (cc) cc.onclick = () => { sessionStorage.setItem("dp_cal", "1"); renderTimeline(CUR_TASK, CUR_MEETING, true); };
+        applyUnits();
+        // Center the current chip so the user never has to scroll to see what they're on
+        // (and the next tasks sit right beside it). Only moves the timeline's own scroll.
+        requestAnimationFrame(() => {
+          const tl = document.getElementById("timeline");
+          const cur = tl && tl.querySelector(".tchip.current");
+          if (!cur) return;
+          const tlRect = tl.getBoundingClientRect(), curRect = cur.getBoundingClientRect();
+          tl.scrollLeft += (curRect.left - tlRect.left) - (tl.clientWidth - curRect.width) / 2;
+        });
+        if (withCal) fetchStatus();
+      }
+      const repoTagKey = (k) => { const [r, n] = k.split("#"); return repoTag(r) + "#" + n; };
+      // Estimates start from defaults and get replaced by learned per-action averages from /api/status.
+      let EST = { prioritize: 0.5, enrich: 0.7, review: 1.0, fix: 2.0, meeting: 0.2, ping: 0.15 };
+      let EST_TOK = { prioritize: 35000, enrich: 45000, review: 70000, fix: 120000, meeting: 15000, ping: 10000 };
+      let EST_N = {}, AUTO = false, autoRunNow = null;
+      // Spend can be shown as dollars or as tokens; each priced action shows what it
+      // costs AND what fraction of today's limit that represents, in the chosen unit.
+      let UNIT = localStorage.getItem("dp_unit") || "usd";
+      let LIMITS = { usd: 0, tokens: 0 }, SPENT = { usd: 0, tokens: 0 };
+      const fmtTok = (n) => n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(Math.round(n || 0));
+      const pctOf = (part, whole) => whole > 0 ? Math.round((part / whole) * 100) : 0;
+      function costText(kind, short) {
+        if (UNIT === "tok") { const e = EST_TOK[kind] || 0; const p = pctOf(e, LIMITS.tokens); return `~${fmtTok(e)} tok` + (short || !p ? "" : ` · ${p}% of limit`); }
+        const e = EST[kind] || 0; const p = pctOf(e, LIMITS.usd); return `~$${e.toFixed(2)}` + (short || !p ? "" : ` · ${p}% of limit`);
+      }
+      const meterFrac = () => UNIT === "tok" ? pctOf(SPENT.tokens, LIMITS.tokens) : pctOf(SPENT.usd, LIMITS.usd);
+      function meterText() {
+        if (UNIT === "tok") return `◈ ${fmtTok(SPENT.tokens)}${LIMITS.tokens ? " / " + fmtTok(LIMITS.tokens) : ""} tok${LIMITS.tokens ? " · " + meterFrac() + "%" : ""} today`;
+        return `◈ $${SPENT.usd.toFixed(2)}${LIMITS.usd ? " / $" + LIMITS.usd.toFixed(2) : ""}${LIMITS.usd ? " · " + meterFrac() + "%" : ""} today`;
+      }
+      function applyUnits() {
+        const m = document.getElementById("spend");
+        if (m) { m.textContent = meterText(); const f = meterFrac(); m.classList.toggle("warn-limit", f >= 80 && f < 100); m.classList.toggle("over-limit", f >= 100); }
+        document.querySelectorAll("#unitToggle button").forEach((b) => b.classList.toggle("on", b.dataset.u === UNIT));
+        document.querySelectorAll("[data-cost]").forEach((el) => {
+          const k = el.getAttribute("data-cost");
+          el.textContent = costText(k, el.dataset.short === "1");
+          const n = EST_N[k] || 0;
+          el.title = n ? `average of ${n} run${n === 1 ? "" : "s"}` : "starting estimate — refines as you run it";
+        });
+      }
+      function reflectAuto() {
+        const b = document.getElementById("autoToggle");
+        if (!b) return;
+        b.textContent = AUTO ? "⚡ Auto-spend" : "🔒 You decide";
+        b.classList.toggle("on", AUTO);
+        b.title = AUTO
+          ? "Auto mode: prioritize + gather run automatically per task. Agent launches and writes still need a click. Click to require a click for every spend."
+          : "You decide every spend. Click to let the reasoning spends (prioritize + gather) run automatically — agent launches and writes stay manual.";
+      }
+      let AGENT = "claude", HAS_CODEX = false;
+      function updateAgentPicker() {
+        document.querySelectorAll(".agent-sel").forEach((sel) => {
+          sel.style.display = HAS_CODEX ? "inline-block" : "none";
+          sel.value = AGENT;
+          sel.onchange = () => { AGENT = sel.value; document.querySelectorAll(".agent-sel").forEach((s) => (s.value = AGENT)); };
+        });
+      }
+      const agentQ = (qs) => qs + (qs ? "&" : "?") + "agent=" + AGENT;
+      async function fetchStatus() {
+        try {
+          const s = await (await fetch("/api/status")).json();
+          SPENT = { usd: s.today || 0, tokens: s.todayTokens || 0 };
+          LIMITS = { usd: s.limitUsd || 0, tokens: s.limitTokens || 0 };
+          if (s.est) for (const [k, v] of Object.entries(s.est)) { EST[k] = v.usd; EST_TOK[k] = v.tokens; EST_N[k] = v.n; }
+          AUTO = !!s.autoSpend;
+          HAS_CODEX = !!s.codex;
+          updateAgentPicker(); reflectAuto(); applyUnits(); renderBurnbar();
+        } catch (e) { /* ignore */ }
+      }
+      function showPriority(task) {
+        const el = document.getElementById("priority");
+        if (!el) return;
+        el.innerHTML = `<div class="prio ask"><button class="btn ghost" id="prioBtn">🧠 Why this one? Prioritize by impact · <span class="cost" data-cost="prioritize"></span></button><span class="cost-note">reasons over your queue via Slack + Linear to confirm what matters most</span></div>`;
+        document.getElementById("prioBtn").onclick = () => doPrioritize(task);
+        applyUnits();
+      }
+      async function doPrioritize(task) {
+        const el = document.getElementById("priority");
+        el.innerHTML = `<div class="prio"><span class="gathering">🧠 prioritizing by customer impact…</span></div>`;
+        let p;
+        try { p = await (await fetch("/api/priority", { method: "POST" })).json(); } catch (e) { el.innerHTML = ""; return; }
+        fetchStatus();
+        const num = String(task.number);
+        const cur = (p.ranked || []).find((r) => (r.key.split("#")[1] || "") === num);
+        const topNum = p.topKey ? p.topKey.split("#")[1] : null;
+        if (topNum && topNum === num) {
+          el.innerHTML = `<div class="prio top">🧠 <b>Highest impact right now.</b> ${esc(p.topReason || (cur && cur.reason) || "")}</div>`;
+        } else if (p.topKey) {
+          el.innerHTML = `<div class="prio rec">🧠 <b>${esc(repoTagKey(p.topKey))} is higher impact.</b> ${esc(p.topReason || "")} <a href="/now?task=${encodeURIComponent(p.topKey)}">switch →</a>` +
+            (cur ? `<div class="prio-cur">This task: <b>${esc(cur.impact)}</b> impact — ${esc(cur.reason)}</div>` : "") + `</div>`;
+        } else { el.innerHTML = ""; }
+      }
+      function meetingNarrator(kind) {
+        if (kind === "interview") return "The Guide advises that interviewing is largely the art of discovering whether someone can think, while pretending it is about whether they can code. Bring curiosity. And a towel.";
+        if (kind === "standup") return "The Guide notes that a standup is a brief ritual in which everyone claims to be 'making progress.' You, however, have receipts — see below.";
+        return "The Guide reminds you that most meetings could have been an email. This one, however, is on your calendar; show up, be useful, and leave on time.";
+      }
+      async function renderMeeting(id) {
+        const app = document.getElementById("app");
+        app.innerHTML = `<div class="sk" style="width:40%"></div><div class="sk" style="width:70%"></div><div class="sk" style="width:55%"></div>`;
+        const m = await (await fetch("/api/meeting?id=" + encodeURIComponent(id))).json();
+        fetchStatus();
+        if (m.error) { app.innerHTML = `<div class="empty">Couldn't load that meeting.</div>`; return; }
+        const iv = m.kind === "interview";
+        const atts = (m.attendees || []).map((a) => `<span class="att">${esc(a)}</span>`).join("");
+        const join = m.conferenceUrl ? `<a class="btn primary" href="${esc(m.conferenceUrl)}" target="_blank" rel="noopener">Join ↗</a>` : "";
+        const cal = m.htmlLink ? `<a class="btn ghost" href="${esc(m.htmlLink)}" target="_blank" rel="noopener">Open in Calendar ↗</a>` : "";
+        const prep = (m.prep || "").split(/\n/).map((l) => l.trim() ? `<p>${esc(l.trim())}</p>` : "").join("") || '<span style="color:var(--faint)">—</span>';
+        app.innerHTML = `
+          <div class="entry-kicker">▐ CALENDAR ENTRY · ${esc(m.kind)}${m.when ? " · " + esc(m.when) : ""}</div>
+          <div class="title">${esc(m.title)}</div>
+          ${(join || cal) ? `<div class="actions">${join}${cal}</div>` : ""}
+          <div class="panel">
+            <h3>Your prep <span class="nt">· ${iv ? "for the interview" : "drafted from your backlog"}</span></h3>
+            <div class="explainer">${prep}</div>
+          </div>
+          ${m.description ? `<div class="panel"><h3>Agenda</h3><div class="explainer"><p>${esc(m.description)}</p></div></div>` : ""}
+          ${atts ? `<div class="panel"><h3>Who's here</h3><div class="atts">${atts}</div></div>` : ""}
+          <div class="guidebox"><span class="badge">THE&nbsp;GUIDE</span><span class="say">${esc(meetingNarrator(m.kind))}</span></div>`;
+      }
+
+      // Close the human loop: draft-then-send a Slack DM after a review/fix.
+      function showPing(taskSel, kind, gist) {
+        let host = document.getElementById("pingSlot");
+        if (!host) { host = document.createElement("div"); host.id = "pingSlot"; document.getElementById("agent").appendChild(host); }
+        host.innerHTML = `<div class="panel"><h3>Close the loop <span class="nt">· let them know</span></h3>
+          <button class="btn ghost" id="pingDraftBtn">💬 Draft a ping to the ${kind === "review" ? "author" : "reviewer"} · <span class="cost" data-cost="ping"></span></button>
+          <div id="pingBody"></div></div>`;
+        document.getElementById("pingDraftBtn").onclick = () => draftPingUI(taskSel, kind, gist);
+        applyUnits();
+      }
+      async function draftPingUI(taskSel, kind, gist) {
+        const body = document.getElementById("pingBody");
+        body.innerHTML = `<div class="gathering" style="margin-top:10px">💬 drafting the message…</div>`;
+        const d = await (await fetch("/api/ping/draft", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ task: taskSel, kind, gist }) })).json();
+        fetchStatus();
+        if (d.error) { body.innerHTML = `<p class="warn" style="margin-top:8px">${esc(d.error)}</p>`; return; }
+        body.innerHTML = `<div style="margin-top:11px">
+          <div class="cost-note">to ${d.resolved ? "" : "⚠ unverified "}<b>${esc(d.slackHandle || "—")}</b></div>
+          <textarea id="pingMsg" style="min-height:72px;margin-top:6px">${esc(d.message)}</textarea>
+          <div class="submit">
+            ${d.resolved && d.slackUserId ? `<button class="btn amber" id="pingSend">Send Slack DM →</button>` : `<span class="warn">Couldn't confirm their Slack user — copy this and send it yourself.</span>`}
+            <span id="pingSent" class="copied" style="display:none"></span>
+          </div></div>`;
+        const sb = document.getElementById("pingSend");
+        if (sb) sb.onclick = async () => {
+          sb.disabled = true; sb.textContent = "sending…";
+          const r = await (await fetch("/api/ping/send", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slackUserId: d.slackUserId, message: document.getElementById("pingMsg").value }) })).json();
+          fetchStatus();
+          const sent = document.getElementById("pingSent");
+          if (r.error) { sb.disabled = false; sb.textContent = "Send Slack DM →"; sent.textContent = "⚠ " + r.error; sent.style.display = "inline"; return; }
+          sb.style.display = "none"; sent.textContent = "✓ sent"; sent.style.display = "inline";
+        };
+      }
+
+      // ---- burndown: supervise an agent working down the court, task by task ----
+      const getBurn = () => { try { return JSON.parse(sessionStorage.getItem("dp_burn") || "null"); } catch { return null; } };
+      const setBurn = (b) => sessionStorage.setItem("dp_burn", JSON.stringify(b));
+      const clearBurn = () => sessionStorage.removeItem("dp_burn");
+      function burnAdvance() {
+        const b = getBurn(); if (!b) return;
+        b.i += 1; setBurn(b);
+        if (b.i >= b.queue.length) { renderBurnbar(); return; }
+        location.href = "/now?task=" + encodeURIComponent(b.queue[b.i]) + "&burn=1";
+      }
+      function renderBurnbar() {
+        const bar = document.getElementById("burnbar"); if (!bar) return;
+        const b = getBurn();
+        if (!b) { bar.style.display = "none"; bar.innerHTML = ""; return; }
+        const n = b.queue.length, cur = Math.min(b.i + 1, n);
+        const spend = UNIT === "tok" ? `${fmtTok(SPENT.tokens)} tok` : `$${SPENT.usd.toFixed(2)}`;
+        bar.style.display = "flex";
+        if (b.i >= n) {
+          bar.innerHTML = `<span class="bb-lab">🔥 Backlog burned down</span><span class="bb-mid">${n} task${n === 1 ? "" : "s"} worked · ${spend} spent today</span><button class="bb-btn" id="bbDone">Done →</button>`;
+          document.getElementById("bbDone").onclick = () => { clearBurn(); location.href = "/"; };
+          return;
+        }
+        bar.innerHTML =
+          `<span class="bb-lab">🔥 Burndown</span>` +
+          `<span class="bb-mid">task <b>${cur}</b>/${n} · ${spend} today${b.paused ? " · <b>paused</b>" : ""}</span>` +
+          `<button class="bb-btn" id="bbSkip">Skip →</button>` +
+          `<button class="bb-btn" id="bbToggle">${b.paused ? "Resume" : "Pause"}</button>` +
+          `<button class="bb-btn danger" id="bbStop">Stop</button>`;
+        document.getElementById("bbSkip").onclick = () => burnAdvance();
+        document.getElementById("bbToggle").onclick = () => { const bb = getBurn(); bb.paused = !bb.paused; setBurn(bb); renderBurnbar(); if (!bb.paused) burnAutoLaunch(); };
+        document.getElementById("bbStop").onclick = () => { clearBurn(); renderBurnbar(); };
+      }
+      function burnAutoLaunch() {
+        const b = getBurn();
+        if (!b || b.paused || b.i >= b.queue.length) return;
+        if (b.launched === b.i) return; // already launched this task (survives a manual reload)
+        const taskSel = new URLSearchParams(location.search).get("task");
+        if (taskSel !== b.queue[b.i]) return; // user navigated off the queue — don't hijack
+        if ((LIMITS.usd && SPENT.usd >= LIMITS.usd) || (LIMITS.tokens && SPENT.tokens >= LIMITS.tokens)) {
+          b.paused = true; setBurn(b); renderBurnbar(); return; // hit the daily limit — pause
+        }
+        b.launched = b.i; setBurn(b);
+        const lf = document.getElementById("launchFix"), lr = document.getElementById("launch");
+        if (lf) lf.click(); else if (lr) lr.click();
+      }
+
+      async function load() {
+        const params = new URLSearchParams(location.search);
+        const taskSel = params.get("task");
+        const meetingId = params.get("meeting");
+        let qs = taskSel ? "?task=" + encodeURIComponent(taskSel) : "";
+        // Keep the calendar loaded across navigation once the user has opted in.
+        const calOn = sessionStorage.getItem("dp_cal") === "1";
+        renderTimeline(taskSel, meetingId, calOn);
+        if (meetingId) { renderMeeting(meetingId); return; }
+
+        await fetchStatus();
+        const app = document.getElementById("app");
+        app.innerHTML = `<div class="sk" style="width:40%"></div><div class="sk" style="width:80%"></div><div class="sk" style="width:60%"></div>`;
+        const resp = await fetch("/api/now" + qs);
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          app.innerHTML = `<div class="empty" style="color:var(--amber)">⚠ Couldn't load your task just now. <button class="btn ghost" onclick="location.reload()">Retry</button></div>`;
+          return;
+        }
+        if (!data.task) { app.innerHTML = `<div class="empty">✓ Your court is clear. Nothing needs you right now.</div>`; return; }
+        const { task, context: c } = data;
+
+        // If the URL's task is stale (PR left the court) the server falls back to the top
+        // task — sync the URL + timeline to what actually rendered so the right chip
+        // highlights and centers, and later fetches (enrich/launch/prompt) target it.
+        const actualSel = task.shortRepo + "#" + task.number;
+        if (taskSel && actualSel !== taskSel) {
+          qs = "?task=" + encodeURIComponent(actualSel);
+          params.set("task", actualSel); // preserve any other params (burn, job)
+          history.replaceState(null, "", "/now?" + params.toString());
+          const calOn = sessionStorage.getItem("dp_cal") === "1";
+          renderTimeline(actualSel, null, calOn);
+        }
+
+        const isFix = task.turn === "mine_fix" || task.turn === "mine_respond";
+        // The editable prompt disclosure — shown for both agents; your edits are what runs.
+        const promptDisclosure = `
+             <details class="prompt-disclose">
+               <summary>View, edit, or copy the exact prompt the agent runs</summary>
+               <textarea id="prompt">${esc(c.prompt)}</textarea>
+               <div class="actions">
+                 <button class="btn ghost" id="copy">Copy prompt</button>
+                 <span class="copied" id="copied" style="display:none">copied</span>
+                 <span class="cost-note">Your edits here are what the agent runs.</span>
+               </div>
+             </details>`;
+        // The hero's action block — how to launch an agent to address this task.
+        const heroAction = isFix
+          ? `<div class="hero-actions">
+               <button class="btn primary lg" id="launchFix">⚡ Launch fix agent · <span class="cost" data-cost="fix"></span></button>
+               <select class="agent-sel" title="Which agent runs the fix" style="display:none"><option value="claude">Claude</option><option value="codex">Codex</option></select>
+               <a class="btn ghost" href="${esc(task.url)}" target="_blank" rel="noopener">Open PR ↗</a>
+             </div>
+             ${promptDisclosure}
+             <div class="hero-hint">Runs a write-capable agent in a <b>dedicated clone</b> (never your working copies), ${task.turn === "mine_fix" ? "reproduces and fixes the failing CI" : "addresses the review threads"}, and proposes a diff — fed any context you've <b>gathered above</b> (incl. acceptance criteria). <b>Nothing is committed or pushed until you approve it.</b></div>`
+          : `<div class="hero-actions">
+               <button class="btn primary lg" id="launch">⚡ Launch review agent · <span class="cost" data-cost="review"></span></button>
+               <select class="agent-sel" title="Which agent runs the review" style="display:none"><option value="claude">Claude</option><option value="codex">Codex</option></select>
+               <a class="btn ghost" href="${esc(task.url)}" target="_blank" rel="noopener">Open PR ↗</a>
+             </div>
+             ${promptDisclosure}
+             <div class="hero-hint">Launch runs the agent <b>read-only</b> and drafts a cited review — it's fed any context you've <b>gathered above</b> (Slack, Linear, acceptance criteria). Nothing is posted to GitHub until you approve it — read the diff yourself first.</div>`;
+
+        app.innerHTML = `
+          <div class="entry-kicker">▐ ${esc(repoTag(task.shortRepo))}#${task.number} · a ${esc(c.changeType)} change</div>
+          <h1 class="title">${esc(task.title)}</h1>
+          <div class="sub">by ${esc(task.author)} · <b>${esc(SUB[task.turn] || "this one needs you")}</b></div>
+          <div id="priority" class="whynow"></div>
+
+          <section class="panel gapzone">
+            <h3>What's missing <span class="nt">· is this ready to close?</span></h3>
+            <div class="gather-cta" id="gatherCta">
+              <button class="btn primary" id="gatherBtn">✨ Gather full context + coaching · <span class="cost" data-cost="enrich"></span></button>
+              <span class="cost-note">one agent call — pulls Slack + Linear, writes your orientation, checks acceptance criteria, flags gaps, and teaches the lesson.</span>
+            </div>
+            <div id="gaps"></div>
+          </section>
+
+          <div class="entities">
+            <a class="elink" href="${esc(task.url)}" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true" style="vertical-align:-2px;margin-right:2px"><path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"></path></svg>PR #${task.number} ↗</a>
+            <span id="elinks"></span>
+          </div>
+
+          <section class="panel">
+            <h3>Orient yourself <span class="nt">· what this is, for someone seeing it fresh</span></h3>
+            <div id="explainer" class="explainer"><span class="ungathered">— gather full context to generate</span></div>
+          </section>
+
+          <section class="hero ${TURNCLS[task.turn] || ""}">
+            <div class="hero-step">
+              <span class="steplab">Next step</span>
+              <span class="stepwhat">Done when ${DONE[task.turn] || "this task is resolved."}</span>
+            </div>
+            ${heroAction}
+          </section>
+
+          <div id="agent"></div>
+
+          <section class="panel">
+            <h3>Learn as you close this <span class="nt">· level up ticket by ticket</span></h3>
+            <div id="coach"><span class="ungathered">— gather full context to learn</span></div>
+          </section>`;
+
+        // reflect Codex availability + fill the priced-action cost labels
+        updateAgentPicker();
+        applyUnits();
+
+        // copy (review tasks only)
+        const copyBtn = document.getElementById("copy");
+        if (copyBtn) copyBtn.addEventListener("click", async () => {
+          await navigator.clipboard.writeText(document.getElementById("prompt").value);
+          const el = document.getElementById("copied"); el.style.display = "inline";
+          setTimeout(() => (el.style.display = "none"), 2500);
+        });
+
+        // Auto-grow fallback where CSS field-sizing isn't supported. Must run on
+        // programmatic value swaps AND on <details> open (scrollHeight is 0 while hidden).
+        const promptAutosize = CSS.supports("field-sizing", "content") ? () => {} : () => {
+          const ta = document.getElementById("prompt");
+          if (!ta || !ta.offsetParent) return;
+          ta.style.height = "auto";
+          ta.style.height = Math.min(ta.scrollHeight + 2, window.innerHeight * 0.6) + "px";
+        };
+        const promptTa = document.getElementById("prompt");
+        if (promptTa) {
+          promptTa.addEventListener("input", promptAutosize);
+          promptTa.closest("details")?.addEventListener("toggle", promptAutosize);
+        }
+
+        // Keep the shown/copyable prompt identical to what the agent actually receives
+        // (incl. gathered context). Re-run after gathering so it picks up the new context.
+        async function refreshPrompt() {
+          const ta = document.getElementById("prompt");
+          if (!ta) return;
+          try { const r = await (await fetch("/api/now/prompt" + qs)).json(); if (r.prompt) { ta.value = r.prompt; ta.dataset.ready = "1"; promptAutosize(); } } catch (e) { /* keep base */ }
+        }
+        refreshPrompt();
+        // POST options that feed the (possibly edited) shown prompt to the agent.
+        function promptBody() {
+          const ta = document.getElementById("prompt");
+          const p = ta && ta.dataset.ready === "1" && ta.value.trim() ? ta.value : null;
+          return { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt: p }) };
+        }
+
+        // why-this-now (impact priority + reasoning)
+        showPriority(task);
+
+        // ---- enrich: live Slack + Linear + acceptance + entity links, via agent auth ----
+        function gatherFull() {
+          const gb = document.getElementById("gatherBtn");
+          if (gb) { gb.disabled = true; gb.textContent = "✨ Gathering…"; }
+          for (const id of ["explainer", "gaps", "coach"]) { const e = document.getElementById(id); if (e) e.innerHTML = '<span class="gathering">🔎 gathering…</span>'; }
+          fetch("/api/now/enrich" + qs, { method: "POST" }).then((r) => r.json()).then((g) => {
+            fetchStatus();
+            const cta = document.getElementById("gatherCta"); if (cta) cta.style.display = "none";
+            if (g.error) return;
+            // orientation explainer
+            const ex = document.getElementById("explainer");
+            if (ex) ex.innerHTML = g.explainer
+              ? g.explainer.split(/\n\n+/).map((p) => `<p>${esc(p)}</p>`).join("")
+              : '<span style="color:var(--faint)">No orientation available.</span>';
+            // context gaps + suggested actions to fill them
+            const gapsEl = document.getElementById("gaps");
+            if (gapsEl) gapsEl.innerHTML = (g.gaps && g.gaps.length)
+              ? g.gaps.map((x) => `<div class="gap"><div class="gap-t">⚠ ${esc(x.gap)}</div><div class="gap-a">→ ${esc(x.action)}</div></div>`).join("")
+              : `<div class="gap ok">✓ Enough context here to review and close confidently.</div>`;
+            // coaching element — learn as you close
+            const coachEl = document.getElementById("coach");
+            if (coachEl) coachEl.innerHTML = (g.coach && (g.coach.concept || g.coach.note))
+              ? `<div class="coachbox"><div class="coach-c">🎓 ${esc(g.coach.concept)}</div><div class="coach-n">${esc(g.coach.note)}</div></div>`
+              : '<span style="color:var(--faint)">—</span>';
+            // entity links
+            const el = document.getElementById("elinks");
+            let links = "";
+            if (g.linearUrl) links += `<a class="elink" href="${esc(g.linearUrl)}" target="_blank" rel="noopener">🧵 Linear ↗</a>`;
+            if (g.slackUrl) links += `<a class="elink" href="${esc(g.slackUrl)}" target="_blank" rel="noopener">💬 Slack thread ↗</a>`;
+            el.innerHTML = links;
+            refreshPrompt(); // now that context is gathered, the shown prompt includes it
+          }).catch(() => {});
+        }
+        const gatherBtn = document.getElementById("gatherBtn");
+        if (gatherBtn) gatherBtn.addEventListener("click", gatherFull);
+
+        // Auto-spend: land each task fully oriented without a click — reasoning only.
+        // (Agent launches and any GitHub/Slack write always stay explicit.)
+        autoRunNow = () => { doPrioritize(task); gatherFull(); };
+        if (AUTO) autoRunNow();
+
+        // ---- deploy → monitor → inspect ----
+        let polling = null;
+        const agentEl = document.getElementById("agent");
+
+        // fix loop (mine_fix / mine_respond)
+        const launchFixBtn = document.getElementById("launchFix");
+        if (launchFixBtn) launchFixBtn.addEventListener("click", launchFix);
+        async function launchFix() {
+          launchFixBtn.disabled = true; launchFixBtn.textContent = "⚡ Fix agent running…";
+          agentEl.innerHTML = `<div class="panel"><h3>Fix agent · starting…</h3><div class="log">Preparing isolated clone…</div></div>`;
+          const { jobId, error } = await (await fetch("/api/now/fix" + agentQ(qs), promptBody())).json();
+          if (error) { agentEl.innerHTML = `<div class="panel"><p class="warn">${esc(error)}</p></div>`; return; }
+          pollFix(jobId);
+        }
+        function pollFix(id) {
+          clearInterval(polling);
+          polling = setInterval(async () => {
+            const job = await (await fetch("/api/fix/" + id)).json();
+            renderFix(job);
+            if (job.status !== "running") { clearInterval(polling); fetchStatus(); if (launchFixBtn) { launchFixBtn.disabled = false; launchFixBtn.textContent = "⚡ Re-run fix agent"; } }
+          }, 600);
+        }
+        function renderDiff(d) {
+          return (d || "").split("\n").map((l) => {
+            const e = esc(l);
+            if (l.startsWith("+") && !l.startsWith("+++")) return `<span class="di-add">${e}</span>`;
+            if (l.startsWith("-") && !l.startsWith("---")) return `<span class="di-del">${e}</span>`;
+            if (l.startsWith("@@")) return `<span class="di-hunk">${e}</span>`;
+            return e;
+          }).join("\n");
+        }
+        function renderFix(job) {
+          const log = (job.steps || []).map((s) => `<div>${esc(s)}</div>`).join("");
+          let out = "";
+          if (job.status === "proposed") {
+            const fb = [];
+            if (job.costUsd != null) fb.push("$" + job.costUsd.toFixed(2));
+            if (job.tokens) fb.push(fmtTok(job.tokens) + " tok");
+            fb.push(esc(job.branch));
+            out = `<div class="panel"><h3>Proposed change <span class="nt">${fb.join(" · ")}</span></h3>
+              <div class="hint" style="margin:0 0 8px">${esc(job.diffStat)}</div>
+              <pre class="diff">${renderDiff(job.diff)}</pre>
+              <div class="submit">
+                <button class="btn ghost" id="revealPush">Push to the PR branch →</button>
+                <span id="confirmPush" style="display:none"><span class="warn">Commits + pushes to ${esc(repoTag(job.repo.split("/").pop()))}#${job.number} (${esc(job.branch)}). </span><button class="btn amber" id="doPush">Yes, push</button> <button class="btn ghost" id="cancelPush">cancel</button></span>
+                <span id="pushed" class="copied" style="display:none">✓ pushed</span>
+              </div>
+              <div class="hint">Read the diff. Pushing commits in the isolated clone and updates the real PR branch — CI re-runs.</div></div>`;
+          } else if (job.status === "pushed") {
+            out = `<div class="panel"><h3>✓ Pushed</h3><p>Changes pushed to ${esc(job.branch)}. CI will re-run.</p></div>`;
+          } else if (job.status === "failed") {
+            out = `<div class="panel"><h3>Fix agent · failed</h3><p class="warn">${esc(job.error || "unknown error")}</p></div>`;
+          }
+          const ss = captureStream();
+          agentEl.innerHTML = `<div class="panel"><h3>Fix agent · ${job.status === "running" ? "working…" : esc(job.status)}</h3><div class="log">${log}</div>${renderStream(job.segments, job.status === "running")}</div>` + out;
+          restoreStream(ss);
+          wirePush(job);
+        }
+        function wirePush(job) {
+          const reveal = document.getElementById("revealPush");
+          if (!reveal) return;
+          reveal.onclick = () => { reveal.style.display = "none"; document.getElementById("confirmPush").style.display = "inline"; };
+          document.getElementById("cancelPush").onclick = () => { document.getElementById("confirmPush").style.display = "none"; reveal.style.display = "inline"; };
+          document.getElementById("doPush").onclick = async () => {
+            const r = await (await fetch("/api/fix/" + job.id + "/push", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "fix " + repoTagKey(job.repo.split("/").pop() + "#" + job.number) + " via dontpanic" }) })).json();
+            if (r.error) { document.getElementById("confirmPush").innerHTML = `<span class="warn">${esc(r.error)}</span>`; return; }
+            document.getElementById("confirmPush").style.display = "none";
+            document.getElementById("pushed").style.display = "inline";
+            if (getBurn()) setTimeout(burnAdvance, 1400); // burndown: on to the next task
+            else showPing(job.repo.split("/").pop() + "#" + job.number, "respond", job.diffStat);
+          };
+        }
+
+        // review agent (mine_review)
+        const launchBtn = document.getElementById("launch");
+        if (launchBtn) launchBtn.addEventListener("click", async () => {
+          launchBtn.disabled = true; launchBtn.textContent = "⚡ Agent running…";
+          agentEl.innerHTML = `<div class="panel"><h3>Agent · monitor · starting…</h3><div class="log">Launching…</div></div>`;
+          const { jobId, error } = await (await fetch("/api/now/launch" + agentQ(qs), promptBody())).json();
+          if (error) { agentEl.innerHTML = `<div class="panel"><p class="warn">${esc(error)}</p></div>`; return; }
+          poll(jobId);
+        });
+        function poll(id) {
+          clearInterval(polling);
+          polling = setInterval(async () => {
+            const job = await (await fetch("/api/jobs/" + id)).json();
+            renderAgent(job);
+            if (job.status !== "running") {
+              clearInterval(polling);
+              fetchStatus();
+              const b = document.getElementById("launch");
+              if (b) { b.disabled = false; b.textContent = "⚡ Re-run review agent"; }
+            }
+          }, 600);
+        }
+        function renderAgent(job) {
+          const log = (job.steps || []).map((s) => `<div>${esc(s)}</div>`).join("");
+          let inspect = "";
+          if (job.status === "done" && job.result) {
+            const r = job.result;
+            const findings = (r.findings || []).map((f) =>
+              `<li><b>${esc((f.file || "") + (f.line ? ":" + f.line : ""))}</b> ${esc(f.point)}</li>`).join("");
+            const vcls = r.verdict === "approve" ? "green" : r.verdict === "request_changes" ? "amber" : "muted";
+            const rb = [];
+            if (job.costUsd != null) rb.push("$" + job.costUsd.toFixed(2));
+            if (job.tokens) rb.push(fmtTok(job.tokens) + " tok");
+            if (job.durationMs) rb.push(Math.round(job.durationMs / 1000) + "s");
+            inspect = `<div class="panel"><h3>Agent · inspect <span class="nt">${rb.join(" · ")}</span></h3>
+              <div class="verdict ${vcls}">${esc(r.verdict)}</div>
+              <p>${esc(r.summary)}</p>
+              ${findings ? `<ul class="findings">${findings}</ul>` : ""}
+              <div class="submit">
+                <button class="btn ghost" id="revealSubmit">Submit this verdict to GitHub →</button>
+                <span id="confirm" style="display:none">
+                  <span class="warn">Posts a review to ${esc(repoTag(job.repo.split("/").pop()))}#${job.number}. </span>
+                  <button class="btn amber" id="doSubmit">Yes, submit</button>
+                  <button class="btn ghost" id="cancelSubmit">cancel</button>
+                </span>
+                <span id="submitted" class="copied" style="display:none">✓ posted to GitHub</span>
+              </div>
+              <div class="hint">You're checking the agent's homework — the checklist above is yours, not its.</div></div>`;
+          } else if (job.status === "failed") {
+            inspect = `<div class="panel"><h3>Agent · failed</h3><p class="warn">${esc(job.error || "unknown error")}</p></div>`;
+          }
+          const ss = captureStream();
+          agentEl.innerHTML =
+            `<div class="panel"><h3>Agent · monitor ${job.status === "running" ? "· working…" : "· done"}</h3><div class="log">${log}</div>${renderStream(job.segments, job.status === "running")}</div>` + inspect;
+          restoreStream(ss);
+          wireSubmit(job);
+        }
+        const resumeId = new URLSearchParams(location.search).get("job");
+        if (resumeId) poll(resumeId);
+
+        // burndown: if we're in a burn session on this task, launch its agent automatically.
+        renderBurnbar();
+        burnAutoLaunch();
+
+        function wireSubmit(job) {
+          const reveal = document.getElementById("revealSubmit");
+          if (!reveal) return;
+          reveal.onclick = () => { reveal.style.display = "none"; document.getElementById("confirm").style.display = "inline"; };
+          document.getElementById("cancelSubmit").onclick = () => { document.getElementById("confirm").style.display = "none"; reveal.style.display = "inline"; };
+          document.getElementById("doSubmit").onclick = async () => {
+            const body = job.result.summary + "\n\n" +
+              (job.result.findings || []).map((f) => `- ${(f.file || "")}${f.line ? ":" + f.line : ""} ${f.point}`).join("\n") +
+              "\n\n_reviewed with dontpanic_";
+            await fetch("/api/jobs/" + job.id + "/submit", {
+              method: "POST", headers: { "content-type": "application/json" },
+              body: JSON.stringify({ verdict: job.result.verdict, body }),
+            });
+            document.getElementById("confirm").style.display = "none";
+            document.getElementById("submitted").style.display = "inline";
+            if (getBurn()) setTimeout(burnAdvance, 1400); // burndown: on to the next task
+            else showPing(job.repo.split("/").pop() + "#" + job.number, "review", job.result.summary);
+          };
+        }
+      }
+      document.querySelectorAll("#unitToggle button").forEach((b) => b.addEventListener("click", () => { UNIT = b.dataset.u; localStorage.setItem("dp_unit", UNIT); applyUnits(); }));
+      document.getElementById("autoToggle").addEventListener("click", async () => {
+        try { const r = await (await fetch("/api/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ autoSpend: !AUTO }) })).json(); AUTO = !!r.autoSpend; }
+        catch (e) { AUTO = !AUTO; }
+        reflectAuto();
+        if (AUTO && autoRunNow) autoRunNow();
+      });
+      document.getElementById("refresh").addEventListener("click", load);
+      // Resync: pull fresh PRs from GitHub (free), then reload — the "Why this one?"
+      // priced prompt re-appears with the refreshed queue for a paid re-rank.
+      document.getElementById("resync").addEventListener("click", async () => {
+        const btn = document.getElementById("resync");
+        btn.disabled = true; btn.textContent = "⟳ syncing…";
+        try { await fetch("/api/sync", { method: "POST" }); } catch (e) { /* fall through to reload */ }
+        btn.disabled = false; btn.textContent = "⟳ Resync";
+        load();
+      });
+      load();
+    </script>
+  </body>
+</html>

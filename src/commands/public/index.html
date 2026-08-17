@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dontpanic — board</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <style>
+      :root {
+        --bg:#0c0d10; --panel:#141519; --card:#191b20; --inset:#0f1013; --raised:#20222a;
+        --text:#e8eaee; --muted:#8b929c; --faint:#5c626c; --border:#212430; --border2:#2c3040;
+        --red:#e5555b; --amber:#e2a13a; --blue:#4e9bf0; --green:#3fb27f; --violet:#a98bf0;
+        --accent:#5e6ad2; --accent-hi:#6e79dd; --accent-fg:#fff;
+        --r-lg:12px; --r-md:9px; --r-sm:7px;
+        --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.24);
+        --ring:0 0 0 2px rgba(94,106,210,.55);
+        --t:.13s ease;
+      }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--text);
+        font:14px/1.55 "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+        -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+      ::selection { background:rgba(94,106,210,.32); }
+      ::-webkit-scrollbar { width:10px; height:10px; }
+      ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:6px; border:2px solid var(--bg); }
+      ::-webkit-scrollbar-thumb:hover { background:#3a3f4d; }
+      ::-webkit-scrollbar-track { background:transparent; }
+      :focus-visible { outline:none; box-shadow:var(--ring); }
+      a, button { -webkit-tap-highlight-color:transparent; }
+
+      header { display:flex; align-items:center; gap:12px; padding:11px 20px; border-bottom:1px solid var(--border);
+        position:sticky; top:0; background:rgba(12,13,16,.72); backdrop-filter:saturate(1.4) blur(14px); z-index:5; }
+      header h1 { font-size:16px; margin:0; font-weight:750; letter-spacing:-.2px; } header h1 .dp{ color:var(--green); }
+      .tabs { display:flex; gap:4px; }
+      .tabs a{ color:var(--muted); font-size:13px; text-decoration:none; padding:4px 11px; border-radius:7px; }
+      .tabs a:hover{ color:var(--text); background:var(--card); }
+      .tabs a.on{ color:var(--text); font-weight:650; background:var(--card); }
+      .mode-toggle { background:var(--card); color:var(--muted); border:1px solid var(--border); border-radius:8px; padding:5px 11px; font-size:12px; font-weight:650; cursor:pointer; }
+      .mode-toggle:hover { border-color:var(--border2); }
+      .mode-toggle.on { border-color:var(--amber); color:var(--amber); background:rgba(232,161,58,.10); }
+      .unit-toggle { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+      .unit-toggle button { background:transparent; color:var(--faint); border:0; padding:5px 9px; font-size:12px; font-weight:700; cursor:pointer; }
+      .unit-toggle button.on { background:var(--card); color:var(--text); }
+      .unit-toggle button + button { border-left:1px solid var(--border); }
+      .spend { color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; border:1px solid var(--border); border-radius:20px; padding:4px 11px; }
+      .spend.warn-limit { border-color:var(--amber); color:var(--amber); }
+      .spend.over-limit { border-color:var(--red); color:var(--red); }
+      .cost { font-weight:700; }
+      .refresh { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:13px; cursor:pointer; }
+      .refresh:hover { border-color:var(--border2); }
+
+      main { max-width:960px; margin:0 auto; padding:24px 26px 80px; }
+
+      /* summary + rank CTA */
+      .topbar { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:0 2px 4px; }
+      .sumline { color:var(--muted); font-size:13.5px; } .sumline b{ color:var(--text); font-weight:700; font-variant-numeric:tabular-nums; }
+      .rankslot { margin-left:auto; display:flex; align-items:center; gap:9px; }
+      .btn-rank { background:var(--accent); color:var(--accent-fg); border:1px solid var(--accent); border-radius:var(--r-md); padding:7px 14px; font-size:12.5px; font-weight:650; cursor:pointer;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 1px 2px rgba(0,0,0,.3); transition:background var(--t), transform var(--t); }
+      .btn-rank:hover { background:var(--accent-hi); } .btn-rank:active { transform:translateY(.5px); }
+      .cost-note { color:var(--faint); font-size:12px; }
+      .ranked-note { color:var(--green); font-size:12.5px; font-weight:600; }
+      .btn-burn { background:rgba(226,161,58,.14); color:var(--amber); border:1px solid rgba(226,161,58,.4); border-radius:var(--r-md); padding:7px 14px; font-size:12.5px; font-weight:700; cursor:pointer; transition:background var(--t); }
+      .btn-burn:hover { background:rgba(226,161,58,.22); }
+      .burn-confirm { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:12px 2px 0; padding:11px 14px; background:rgba(226,161,58,.10); border:1px solid rgba(226,161,58,.35); border-radius:var(--r-md); font-size:13px; }
+      .burn-confirm .burn-note { color:var(--muted); } .burn-confirm .burn-note b { color:var(--text); }
+      .btn-cancel { background:transparent; border:0; color:var(--faint); cursor:pointer; font-size:12.5px; }
+      .btn-cancel:hover { color:var(--text); }
+
+      h2 { font-size:11px; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); margin:26px 2px 11px; font-weight:700; }
+      h2 .nt{ color:var(--faint); text-transform:none; letter-spacing:0; font-weight:400; }
+
+      /* impact + kind badges (shared) */
+      .imp { flex:none; font-size:10px; font-weight:700; letter-spacing:.4px; padding:2px 7px; border-radius:5px; border:1px solid transparent; }
+      .imp.high{ background:rgba(229,85,91,.15); color:#f2777b; border-color:rgba(229,85,91,.34); }
+      .imp.med{ background:rgba(94,106,210,.16); color:#8f98e6; border-color:rgba(94,106,210,.34); }
+      .imp.low{ background:var(--card); color:var(--muted); border-color:var(--border); } .imp.none{ background:transparent; color:var(--faint); border-color:var(--border); }
+      .kind { flex:none; font-size:10px; text-transform:uppercase; letter-spacing:.4px; font-weight:700; display:flex; align-items:center; gap:5px; color:var(--muted); }
+      .kind .dot{ width:7px; height:7px; border-radius:50%; }
+      .k-review .dot{ background:var(--amber);} .k-fix .dot{ background:var(--red);} .k-respond .dot{ background:var(--blue);} .k-merge .dot{ background:var(--green);} .k-assign .dot{ background:var(--violet);}
+      .num { flex:none; color:var(--muted); font-size:12.5px; font-variant-numeric:tabular-nums; }
+      .ready { flex:none; font-size:11.5px; color:var(--muted); display:flex; gap:8px; align-items:center; }
+      .ci-pass{ color:var(--green);} .ci-fail{ color:var(--red);} .ci-pend{ color:var(--amber);}
+
+      /* start-here hero (top of court) */
+      .starthere { margin-top:6px; }
+      .sh-lab { font-size:10.5px; font-weight:750; text-transform:uppercase; letter-spacing:.7px; color:var(--green); margin:0 2px 8px; }
+      .sh-card { display:block; text-decoration:none; color:inherit; background:linear-gradient(180deg, var(--panel), #101116);
+        border:1px solid var(--border2); border-left:4px solid var(--accent); border-radius:var(--r-lg); padding:16px 18px; box-shadow:var(--shadow);
+        transition:border-color var(--t), transform var(--t), box-shadow var(--t); }
+      .sh-card:hover { border-color:var(--border2); transform:translateY(-1px); box-shadow:0 1px 2px rgba(0,0,0,.4), 0 14px 36px rgba(0,0,0,.30); }
+      .sh-card.k-review{ border-left-color:var(--amber);} .sh-card.k-fix{ border-left-color:var(--red);} .sh-card.k-respond{ border-left-color:var(--blue);} .sh-card.k-merge{ border-left-color:var(--green);} .sh-card.k-assign{ border-left-color:var(--violet);}
+      .sh-top { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+      .sh-title { font-size:17px; font-weight:700; line-height:1.3; letter-spacing:-.2px; }
+      .sh-reason { color:var(--muted); font-size:13px; margin-top:8px; line-height:1.5; } .sh-reason b{ color:var(--text); }
+      .sh-foot { display:flex; align-items:center; gap:12px; margin-top:14px; }
+      .sh-open { margin-left:auto; background:var(--accent); color:var(--accent-fg); font-weight:650; font-size:12.5px; border-radius:var(--r-md); padding:8px 14px;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.09); transition:background var(--t); }
+      .sh-card:hover .sh-open { background:var(--accent-hi); }
+
+      /* court rows */
+      .brow { display:block; text-decoration:none; color:inherit; background:var(--card); border:1px solid var(--border);
+        border-radius:var(--r-md); padding:11px 13px; margin-bottom:7px; transition:border-color var(--t), background var(--t); }
+      .brow:hover { border-color:var(--border2); background:var(--raised); }
+      .btop { display:flex; align-items:center; gap:10px; }
+      .rtitle { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13.5px; }
+      .open { flex:none; color:var(--faint); font-size:12px; }
+      .brow:hover .open{ color:var(--accent); }
+      .rreason { color:var(--muted); font-size:12.5px; margin-top:7px; padding-left:2px; line-height:1.5; }
+      .rreason b{ color:var(--text); }
+
+      /* per-PR brief (state + suggested changes) */
+      .brief { margin-top:9px; padding-top:9px; border-top:1px solid var(--border); }
+      .brief-state { font-size:12.5px; color:var(--muted); line-height:1.55; }
+      .brief-state b{ color:var(--text); font-weight:600; }
+      .brief-sug { margin:7px 0 0; padding:0; list-style:none; }
+      .brief-sug li{ font-size:12.5px; color:var(--text); line-height:1.5; padding:1px 0 1px 16px; position:relative; }
+      .brief-sug li::before{ content:"→"; position:absolute; left:0; color:var(--accent); }
+      .brief-lab{ font-size:10px; text-transform:uppercase; letter-spacing:.5px; font-weight:700; color:var(--faint); margin-right:6px; }
+      .btn-brief { background:rgba(94,106,210,.14); color:#8f98e6; border:1px solid rgba(94,106,210,.35); border-radius:var(--r-md); padding:7px 13px; font-size:12.5px; font-weight:650; cursor:pointer; transition:background var(--t); }
+      .btn-brief:hover{ background:rgba(94,106,210,.22); } .btn-brief:disabled{ opacity:.6; cursor:default; }
+      .brief-done{ color:var(--green); font-size:12.5px; font-weight:600; }
+      .briefbar { display:flex; align-items:center; gap:11px; flex-wrap:wrap; margin:14px 2px 2px; }
+
+      /* multi-select for parallel resolve */
+      .rowwrap { display:flex; align-items:stretch; gap:9px; margin-bottom:7px; }
+      .rowwrap .brow { flex:1; margin-bottom:0; min-width:0; }
+      .selbox { align-self:center; flex:none; width:17px; height:17px; accent-color:var(--accent); cursor:pointer; }
+      .selbox:disabled { opacity:.25; cursor:not-allowed; }
+      .selspacer { flex:none; width:17px; }
+      .rowwrap.on .brow { border-color:var(--accent); background:var(--raised); }
+      .selbar { position:fixed; left:50%; transform:translateX(-50%); bottom:22px; z-index:20;
+        display:flex; align-items:center; gap:14px; padding:11px 16px; background:var(--panel);
+        border:1px solid var(--border2); border-radius:12px; box-shadow:var(--shadow); }
+      .selbar .selnote { font-size:13px; color:var(--muted); } .selbar .selnote b{ color:var(--text); }
+      .selbar .btn-go { background:var(--accent); color:var(--accent-fg); border:1px solid var(--accent); border-radius:var(--r-md);
+        padding:8px 15px; font-size:13px; font-weight:650; cursor:pointer; box-shadow:inset 0 1px 0 rgba(255,255,255,.09); }
+      .selbar .btn-go:hover{ background:var(--accent-hi); }
+      .selbar .btn-clear { background:transparent; border:0; color:var(--faint); cursor:pointer; font-size:12.5px; }
+      .selbar .btn-clear:hover{ color:var(--text); }
+
+      /* waiting rows */
+      .wrow { display:flex; align-items:center; gap:10px; padding:8px 11px; border-radius:8px; font-size:13px; }
+      .wrow:hover{ background:var(--panel); }
+      .wrow .num{ width:118px; } .wrow .wt{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); }
+      .wrow .who{ flex:none; color:var(--faint); font-size:11.5px; }
+      .wrow a{ color:inherit; text-decoration:none; }
+      .empty { color:var(--faint); font-size:13px; padding:8px 2px; }
+      .allclear { text-align:center; color:var(--green); font-size:17px; padding:40px 0; }
+      .sk { height:52px; border-radius:var(--r-md); margin-bottom:8px;
+        background:linear-gradient(90deg, var(--card) 25%, var(--raised) 37%, var(--card) 63%); background-size:400% 100%; animation:sweep 1.4s ease infinite; }
+      @keyframes sweep { from{ background-position:100% 0; } to{ background-position:0 0; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>don't<span class="dp">panic</span></h1>
+      <div class="tabs"><a href="/now">Now</a><a class="on" href="/">Board</a></div>
+      <button class="mode-toggle" id="autoToggle" style="margin-left:auto">🔒 You decide</button>
+      <span class="unit-toggle" id="unitToggle" title="Show spend as dollars or tokens"><button data-u="usd">$</button><button data-u="tok">tok</button></span>
+      <span class="spend" id="spend" title="Spent today vs your daily limit. Nothing runs automatically — you decide every spend.">◈ …</span>
+      <button class="refresh" id="resync" title="Pull fresh PRs from GitHub (free — GitHub only)">⟳ Resync</button>
+      <button class="refresh" id="refresh" title="Re-read already-synced data">Refresh</button>
+    </header>
+    <main id="app">
+      <div class="sk"></div><div class="sk"></div><div class="sk"></div>
+    </main>
+
+    <script>
+      const esc = (s) => (s || "").replace(/[&<>]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
+      const repoTag = (s) => s;
+      const KIND = { mine_review:"Review", mine_respond:"Respond", mine_fix:"Fix CI", ready_merge:"Merge", mine_request_review:"Assign" };
+      const KINDCLS = { mine_review:"k-review", mine_fix:"k-fix", mine_respond:"k-respond", ready_merge:"k-merge", mine_request_review:"k-assign" };
+      const TURN_ORDER = ["mine_review","mine_respond","ready_merge","mine_fix","mine_request_review"];
+      const ACTIONABLE = new Set(TURN_ORDER);
+
+      function ci(c) {
+        if (c === "passing") return `<span class="ci-pass">✓ CI</span>`;
+        if (c === "failing") return `<span class="ci-fail">✗ CI</span>`;
+        if (c === "pending") return `<span class="ci-pend">● CI</span>`;
+        return "";
+      }
+      function readiness(p) {
+        const bits = [ci(p.ci)];
+        if (p.mergeable === "CONFLICTING") bits.push(`<span class="ci-fail">conflict</span>`);
+        if (p.reviewDecision) bits.push(esc(p.reviewDecision.toLowerCase().replace("_", " ")));
+        return bits.filter(Boolean).join(" · ");
+      }
+
+      // The single most-important item, rendered as a prominent "start here" card.
+      function startHere(p, imp) {
+        const sel = p.shortRepo + "#" + p.number;
+        const cls = KINDCLS[p.turn] || "";
+        const impCls = imp ? imp.impact : "none";
+        const selLabel = RESOLVE_KIND[p.turn]
+          ? `<label style="display:inline-flex;align-items:center;gap:6px;margin-left:10px;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400;cursor:pointer"><input type="checkbox" class="selbox" data-sel="${esc(sel)}" data-turn="${esc(p.turn)}" data-title="${esc(p.title)}"${SEL.has(sel) ? " checked" : ""}> add to parallel</label>`
+          : "";
+        return `<div class="starthere">
+          <div class="sh-lab">▶ Start here${selLabel}</div>
+          <a class="sh-card ${cls}" href="/now?task=${encodeURIComponent(sel)}">
+            <div class="sh-top">
+              <span class="imp ${impCls}">${imp ? imp.impact.toUpperCase() : "TOP"}</span>
+              <span class="kind ${cls}"><span class="dot"></span>${esc(KIND[p.turn] || p.turn)}</span>
+              <span class="num">${esc(repoTag(p.shortRepo))}#${p.number}</span>
+              <span class="ready">${readiness(p)}</span>
+            </div>
+            <div class="sh-title">${esc(p.title)}</div>
+            ${imp && imp.reason ? `<div class="sh-reason">🧠 ${esc(imp.reason)}</div>` : `<div class="sh-reason">The next thing in your court. Open it in Now for full context and to launch an agent.</div>`}
+            ${renderBrief(sel)}
+            <div class="sh-foot"><span class="sh-open">Open in Now →</span></div>
+          </a>
+        </div>`;
+      }
+
+      // Per-PR briefs (state + suggested changes), keyed by selector. Cached server-side.
+      const BRIEFS = {};
+      const top10Keys = () => SORTED.slice(0, 10).map((p) => p.shortRepo + "#" + p.number);
+      function renderBrief(sel) {
+        const b = BRIEFS[sel];
+        if (!b) return "";
+        const sug = (b.suggestions || []).map((s) => `<li>${esc(s)}</li>`).join("");
+        return `<div class="brief">
+          <div class="brief-state"><span class="brief-lab">State</span>${esc(b.state)}</div>
+          ${sug ? `<ul class="brief-sug">${sug}</ul>` : ""}
+        </div>`;
+      }
+      // The "summarize top 10" control — priced by how many of the top-10 still need a brief.
+      function briefBar() {
+        const keys = top10Keys();
+        if (!keys.length) return "";
+        const need = keys.filter((k) => !BRIEFS[k]).length;
+        if (!need) return `<div class="briefbar"><span class="brief-done">✓ Top ${keys.length} summarized</span> <span class="cost-note">stays current until a PR changes; Resync refreshes</span></div>`;
+        const cost = UNIT === "tok" ? `~${fmtTok(need * (EST_TOK.brief || 0))} tok` : `~$${(need * (EST.brief || 0)).toFixed(2)}`;
+        return `<div class="briefbar"><button class="btn-brief" id="briefBtn">📋 Summarize top ${keys.length} · ${cost}</button>` +
+          `<span class="cost-note">state + suggested changes per PR from its diff · cached, so re-viewing is free${BRIEFS && Object.keys(BRIEFS).length ? " · " + (keys.length - need) + " already done" : ""}</span></div>`;
+      }
+
+      // Which court turns an agent can resolve (review or fix); others (merge/assign) get no checkbox.
+      const RESOLVE_KIND = { mine_review: "review", mine_fix: "fix", mine_respond: "fix" };
+      const SEL = new Map(); // selector -> { turn, kind, title }
+      function checkbox(p) {
+        const sel = p.shortRepo + "#" + p.number;
+        const kind = RESOLVE_KIND[p.turn];
+        if (!kind) return `<span class="selspacer" title="not agent-resolvable (merge/assign is manual)"></span>`;
+        return `<input type="checkbox" class="selbox" data-sel="${esc(sel)}" data-turn="${esc(p.turn)}" data-title="${esc(p.title)}"${SEL.has(sel) ? " checked" : ""}>`;
+      }
+
+      function actionableRow(p, imp) {
+        const sel = p.shortRepo + "#" + p.number;
+        const cls = KINDCLS[p.turn] || "";
+        const impCls = imp ? imp.impact : "none";
+        return `<div class="rowwrap${SEL.has(sel) ? " on" : ""}" data-wrap="${esc(sel)}">
+          ${checkbox(p)}
+          <a class="brow" href="/now?task=${encodeURIComponent(sel)}">
+          <div class="btop">
+            <span class="imp ${impCls}">${imp ? imp.impact.toUpperCase() : "·"}</span>
+            <span class="kind ${cls}"><span class="dot"></span>${esc(KIND[p.turn] || p.turn)}</span>
+            <span class="num">${esc(repoTag(p.shortRepo))}#${p.number}</span>
+            <span class="rtitle">${esc(p.title)}</span>
+            <span class="ready">${readiness(p)}</span>
+            <span class="open">open →</span>
+          </div>
+          ${imp && imp.reason ? `<div class="rreason">🧠 ${esc(imp.reason)}</div>` : ""}
+          ${renderBrief(sel)}
+        </a></div>`;
+      }
+
+      // Spend shown as dollars or tokens, with the fraction of today's limit each action costs.
+      let EST = { prioritize: 0.5, review: 1.0, fix: 2.0, brief: 0.15 };
+      let EST_TOK = { prioritize: 35000, review: 70000, fix: 120000, brief: 40000 };
+      let EST_N = {}, AUTO = false;
+      let UNIT = localStorage.getItem("dp_unit") || "usd";
+      let LIMITS = { usd: 0, tokens: 0 }, SPENT = { usd: 0, tokens: 0 };
+      const fmtTok = (n) => n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(Math.round(n || 0));
+      const pctOf = (part, whole) => whole > 0 ? Math.round((part / whole) * 100) : 0;
+      function costText(kind) {
+        if (UNIT === "tok") { const e = EST_TOK[kind] || 0; const p = pctOf(e, LIMITS.tokens); return `~${fmtTok(e)} tok` + (p ? ` · ${p}% of limit` : ""); }
+        const e = EST[kind] || 0; const p = pctOf(e, LIMITS.usd); return `~$${e.toFixed(2)}` + (p ? ` · ${p}% of limit` : "");
+      }
+      const meterFrac = () => UNIT === "tok" ? pctOf(SPENT.tokens, LIMITS.tokens) : pctOf(SPENT.usd, LIMITS.usd);
+      function meterText() {
+        if (UNIT === "tok") return `◈ ${fmtTok(SPENT.tokens)}${LIMITS.tokens ? " / " + fmtTok(LIMITS.tokens) : ""} tok${LIMITS.tokens ? " · " + meterFrac() + "%" : ""} today`;
+        return `◈ $${SPENT.usd.toFixed(2)}${LIMITS.usd ? " / $" + LIMITS.usd.toFixed(2) : ""}${LIMITS.usd ? " · " + meterFrac() + "%" : ""} today`;
+      }
+      function applyUnits() {
+        const m = document.getElementById("spend");
+        if (m) { m.textContent = meterText(); const f = meterFrac(); m.classList.toggle("warn-limit", f >= 80 && f < 100); m.classList.toggle("over-limit", f >= 100); }
+        document.querySelectorAll("#unitToggle button").forEach((b) => b.classList.toggle("on", b.dataset.u === UNIT));
+        document.querySelectorAll("[data-cost]").forEach((el) => {
+          const k = el.getAttribute("data-cost");
+          el.textContent = costText(k);
+          const n = EST_N[k] || 0;
+          el.title = n ? `average of ${n} run${n === 1 ? "" : "s"}` : "starting estimate — refines as you run it";
+        });
+      }
+      function reflectAuto() {
+        const b = document.getElementById("autoToggle");
+        if (!b) return;
+        b.textContent = AUTO ? "⚡ Auto-spend" : "🔒 You decide";
+        b.classList.toggle("on", AUTO);
+        b.title = AUTO
+          ? "Auto mode: the board ranks by impact automatically. Agent launches and writes still need a click. Click to require a click for every spend."
+          : "You decide every spend. Click to auto-rank the board by impact — agent launches and writes stay manual.";
+      }
+
+      let COURT = [], WAITING = [], IMPMAP = null, SORTED = [];
+      // Tasks the burndown loop can drive (they have an agent action).
+      const BURN_TURNS = { mine_review: "review", mine_fix: "fix", mine_respond: "fix" };
+      function showBurnConfirm() {
+        const slot = document.getElementById("burnConfirm");
+        const items = SORTED.filter((p) => BURN_TURNS[p.turn]);
+        slot.style.display = "flex";
+        if (!items.length) {
+          slot.innerHTML = `<span class="burn-note">No agent-actionable tasks (review / fix) in your court right now.</span> <button class="btn-cancel" id="burnCancel">close</button>`;
+          document.getElementById("burnCancel").onclick = () => { slot.style.display = "none"; };
+          return;
+        }
+        let estUsd = 0, estTok = 0;
+        items.forEach((p) => { const k = BURN_TURNS[p.turn]; estUsd += EST[k] || 0; estTok += EST_TOK[k] || 0; });
+        const estStr = UNIT === "tok" ? `~${fmtTok(estTok)} tokens` : `~$${estUsd.toFixed(2)}`;
+        slot.innerHTML = `<span class="burn-note">🔥 Burn down <b>${items.length}</b> task${items.length === 1 ? "" : "s"} — the loop auto-launches an agent per task (${estStr} total, at most). You approve every push/submit, and can pause or stop anytime.</span> <button class="btn-burn" id="burnGo">Start →</button> <button class="btn-cancel" id="burnCancel">cancel</button>`;
+        document.getElementById("burnGo").onclick = () => {
+          const queue = items.map((p) => p.shortRepo + "#" + p.number);
+          sessionStorage.setItem("dp_burn", JSON.stringify({ queue, i: 0, paused: false, launched: -1 }));
+          location.href = "/now?task=" + encodeURIComponent(queue[0]) + "&burn=1";
+        };
+        document.getElementById("burnCancel").onclick = () => { slot.style.display = "none"; slot.innerHTML = ""; };
+      }
+      async function fetchStatus() {
+        try {
+          const s = await (await fetch("/api/status")).json();
+          SPENT = { usd: s.today || 0, tokens: s.todayTokens || 0 };
+          LIMITS = { usd: s.limitUsd || 0, tokens: s.limitTokens || 0 };
+          if (s.est) for (const [k, v] of Object.entries(s.est)) { EST[k] = v.usd; EST_TOK[k] = v.tokens; EST_N[k] = v.n; }
+          AUTO = !!s.autoSpend;
+          reflectAuto(); applyUnits();
+        } catch (e) { /* ignore */ }
+      }
+      async function load() {
+        await fetchStatus();
+        const app = document.getElementById("app");
+        app.innerHTML = `<div class="sk"></div><div class="sk"></div><div class="sk"></div>`;
+        const prs = await (await fetch("/api/prs")).json();
+        const all = [...(prs.mine || []), ...(prs.review || [])];
+        COURT = all.filter((p) => ACTIONABLE.has(p.turn));
+        WAITING = [
+          ...(prs.mine || []).filter((p) => p.turn === "theirs_review").map((p) => ({ ...p, wait: (p.reviewers[0] || "a reviewer") })),
+          ...(prs.review || []).filter((p) => p.turn === "theirs_author").map((p) => ({ ...p, wait: p.author })),
+        ];
+        IMPMAP = null;
+        render();
+        peekBriefs(); // show any already-generated briefs (free)
+        // Auto-spend: rank the board by customer impact without a click (reasoning only).
+        if (AUTO && !IMPMAP) rankByImpact();
+      }
+      function render() {
+        const court = COURT.slice().sort((a, b) => {
+          const ia = IMPMAP && IMPMAP[a.number], ib = IMPMAP && IMPMAP[b.number];
+          if (ia && ib) return ia.i - ib.i;
+          if (ia) return -1; if (ib) return 1;
+          const ta = TURN_ORDER.indexOf(a.turn), tb = TURN_ORDER.indexOf(b.turn);
+          return ta - tb || (a.updatedAt < b.updatedAt ? -1 : 1);
+        });
+        SORTED = court; // burndown queue follows the same order shown
+        const top = court[0];
+        const rest = court.slice(1);
+        const rankSlot = IMPMAP
+          ? `<span class="ranked-note">✓ ranked by customer impact</span>`
+          : `<button class="btn-rank" id="rankBtn">🧠 Rank by impact · <span class="cost" data-cost="prioritize"></span></button><span class="cost-note">reasons over your queue</span>`;
+
+        const heroHtml = top
+          ? startHere(top, IMPMAP && IMPMAP[top.number])
+          : `<div class="allclear">✓ Your court is clear. Nothing needs you right now.</div>`;
+        const restHtml = rest.length
+          ? rest.map((p) => actionableRow(p, IMPMAP && IMPMAP[p.number])).join("")
+          : (top ? `<div class="empty">Nothing else in your court.</div>` : "");
+        const waitHtml = WAITING.length
+          ? WAITING.map((p) => `<div class="wrow"><span class="num">${esc(repoTag(p.shortRepo))}#${p.number}</span><a class="wt" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a><span class="who">waiting on ${esc(p.wait)}</span></div>`).join("")
+          : `<div class="empty">Nothing waiting on others.</div>`;
+
+        document.getElementById("app").innerHTML = `
+          <div class="topbar">
+            <div class="sumline"><b>${COURT.length}</b> in your court · <b>${WAITING.length}</b> waiting on others</div>
+            <div class="rankslot"><button class="btn-burn" id="burnBtn">🔥 Burn down backlog</button>${rankSlot}</div>
+          </div>
+          ${briefBar()}
+          <div id="burnConfirm" class="burn-confirm" style="display:none"></div>
+          ${heroHtml}
+          ${rest.length ? `<h2>Also in your court <span class="nt">· ${IMPMAP ? "impact-ranked" : "heuristic order — rank by impact to sort by customer impact"}</span></h2>${restHtml}` : ""}
+          <h2>Waiting on others <span class="nt">· the ball's not in your court</span></h2>
+          ${waitHtml}`;
+        const rb = document.getElementById("rankBtn");
+        if (rb) rb.addEventListener("click", rankByImpact);
+        const bb = document.getElementById("burnBtn");
+        if (bb) bb.addEventListener("click", showBurnConfirm);
+        // Multi-select checkboxes → selection bar.
+        document.querySelectorAll(".selbox").forEach((cb) => {
+          cb.addEventListener("change", () => {
+            const sel = cb.dataset.sel;
+            if (cb.checked) SEL.set(sel, { turn: cb.dataset.turn, kind: RESOLVE_KIND[cb.dataset.turn], title: cb.dataset.title });
+            else SEL.delete(sel);
+            const wrap = document.querySelector(`[data-wrap="${sel}"]`);
+            if (wrap) wrap.classList.toggle("on", cb.checked);
+            renderSelbar();
+          });
+        });
+        renderSelbar();
+        const briefBtn = document.getElementById("briefBtn");
+        if (briefBtn) briefBtn.addEventListener("click", generateBriefs);
+        applyUnits();
+      }
+      // Load already-generated briefs (free) so they show on the Board without spending.
+      async function peekBriefs() {
+        const keys = top10Keys();
+        if (!keys.length) return;
+        try {
+          const r = await (await fetch("/api/briefs?keys=" + encodeURIComponent(keys.join(",")))).json();
+          Object.assign(BRIEFS, r.briefs || {});
+          render();
+        } catch (e) { /* ignore */ }
+      }
+      // Generate the missing briefs for the current top 10 (paid). Cached ones cost nothing.
+      async function generateBriefs() {
+        const targets = top10Keys().filter((k) => !BRIEFS[k]);
+        if (!targets.length) return;
+        // Budget guard.
+        const estUsd = targets.length * (EST.brief || 0), estTok = targets.length * (EST_TOK.brief || 0);
+        const remUsd = LIMITS.usd ? LIMITS.usd - SPENT.usd : Infinity, remTok = LIMITS.tokens ? LIMITS.tokens - SPENT.tokens : Infinity;
+        if (estUsd > remUsd || estTok > remTok) {
+          if (!confirm(`This would spend about ${UNIT === "tok" ? fmtTok(estTok) + " tokens" : "$" + estUsd.toFixed(2)}, exceeding your remaining daily budget. Continue?`)) return;
+        }
+        const btn = document.getElementById("briefBtn");
+        if (btn) { btn.disabled = true; btn.textContent = "📋 summarizing…"; }
+        try {
+          const r = await (await fetch("/api/briefs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ keys: targets }) })).json();
+          Object.assign(BRIEFS, r.briefs || {});
+        } catch (e) { /* ignore */ }
+        fetchStatus();
+        render();
+      }
+      function renderSelbar() {
+        let bar = document.getElementById("selbar");
+        if (!SEL.size) { if (bar) bar.remove(); return; }
+        if (!bar) { bar = document.createElement("div"); bar.id = "selbar"; bar.className = "selbar"; document.body.appendChild(bar); }
+        let usd = 0, tok = 0;
+        for (const v of SEL.values()) { usd += EST[v.kind] || 0; tok += EST_TOK[v.kind] || 0; }
+        const est = UNIT === "tok" ? `~${fmtTok(tok)} tok` : `~$${usd.toFixed(2)}`;
+        bar.innerHTML = `<span class="selnote"><b>${SEL.size}</b> selected · ${est} total</span>` +
+          `<button class="btn-go" id="selGo">⚡ Resolve ${SEL.size} in parallel</button>` +
+          `<button class="btn-clear" id="selClear">clear</button>`;
+        document.getElementById("selClear").onclick = () => { SEL.clear(); document.querySelectorAll(".selbox").forEach((c) => (c.checked = false)); document.querySelectorAll(".rowwrap.on").forEach((w) => w.classList.remove("on")); renderSelbar(); };
+        document.getElementById("selGo").onclick = () => {
+          const jobs = [...SEL.entries()].map(([sel, v]) => ({ sel, turn: v.turn, kind: v.kind, title: v.title }));
+          sessionStorage.setItem("dp_parallel", JSON.stringify(jobs));
+          location.href = "/parallel";
+        };
+      }
+      async function rankByImpact() {
+        const rb = document.getElementById("rankBtn");
+        if (rb) { rb.disabled = true; rb.textContent = "🧠 ranking…"; }
+        let prio; try { prio = await (await fetch("/api/priority", { method: "POST" })).json(); } catch (e) { return; }
+        fetchStatus();
+        IMPMAP = {};
+        (prio.ranked || []).forEach((r, i) => { const n = r.key.split("#")[1]; if (n) IMPMAP[n] = { ...r, i }; });
+        render();
+      }
+      // Pull fresh PRs from GitHub (free), reload, then offer to re-rank (a paid click).
+      async function resync() {
+        const btn = document.getElementById("resync");
+        if (btn) { btn.disabled = true; btn.textContent = "⟳ syncing…"; }
+        let r; try { r = await (await fetch("/api/sync", { method: "POST" })).json(); } catch (e) { r = { error: "sync failed" }; }
+        if (btn) { btn.disabled = false; btn.textContent = "⟳ Resync"; }
+        await load(); // re-reads /api/prs, re-renders (clears any prior impact ranking)
+        const slot = document.getElementById("burnConfirm");
+        if (!slot) return;
+        slot.style.display = "flex";
+        if (r && r.error) {
+          slot.innerHTML = `<span class="burn-note">⚠ Couldn't reach GitHub just now — showing last-synced data.</span> <button class="btn-cancel" id="rsClose">close</button>`;
+        } else {
+          const est = UNIT === "tok" ? `~${fmtTok(EST_TOK.prioritize || 0)} tok` : `~$${(EST.prioritize || 0).toFixed(2)}`;
+          slot.innerHTML = `<span class="burn-note">✓ Resynced from GitHub. Re-rank your court by <b>customer impact</b>?</span> <button class="btn-rank" id="rsRank">🧠 Rank by impact · ${est}</button> <button class="btn-cancel" id="rsClose">not now</button>`;
+          document.getElementById("rsRank").onclick = () => { slot.style.display = "none"; slot.innerHTML = ""; rankByImpact(); };
+        }
+        document.getElementById("rsClose").onclick = () => { slot.style.display = "none"; slot.innerHTML = ""; };
+      }
+      document.querySelectorAll("#unitToggle button").forEach((b) => b.addEventListener("click", () => { UNIT = b.dataset.u; localStorage.setItem("dp_unit", UNIT); applyUnits(); }));
+      document.getElementById("autoToggle").addEventListener("click", async () => {
+        try { const r = await (await fetch("/api/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ autoSpend: !AUTO }) })).json(); AUTO = !!r.autoSpend; }
+        catch (e) { AUTO = !AUTO; }
+        reflectAuto();
+        if (AUTO && !IMPMAP) rankByImpact();
+      });
+      document.getElementById("refresh").addEventListener("click", load);
+      document.getElementById("resync").addEventListener("click", resync);
+      load();
+    </script>
+  </body>
+</html>

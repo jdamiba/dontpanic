@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dontpanic — parallel</title>
+    <style>
+      :root {
+        --bg:#0c0d10; --panel:#141519; --card:#191b20; --inset:#0f1013; --raised:#20222a;
+        --text:#e8eaee; --muted:#8b929c; --faint:#5c626c; --border:#212430; --border2:#2c3040;
+        --red:#e5555b; --amber:#e2a13a; --blue:#4e9bf0; --green:#3fb27f; --violet:#a98bf0;
+        --accent:#5e6ad2; --accent-hi:#6e79dd; --accent-fg:#fff;
+        --r-lg:12px; --r-md:9px; --r-sm:7px;
+        --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.24);
+        --t:.13s ease;
+      }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--text);
+        font:14px/1.55 "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
+      ::-webkit-scrollbar { width:10px; height:10px; }
+      ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:6px; border:2px solid var(--bg); }
+      ::-webkit-scrollbar-track { background:transparent; }
+
+      header { display:flex; align-items:center; gap:12px; padding:11px 20px; border-bottom:1px solid var(--border);
+        position:sticky; top:0; background:rgba(12,13,16,.72); backdrop-filter:saturate(1.4) blur(14px); z-index:5; }
+      header h1 { font-size:16px; margin:0; font-weight:750; letter-spacing:-.2px; } header h1 .dp{ color:var(--green); }
+      .tabs { display:flex; gap:4px; } .tabs a{ color:var(--muted); font-size:13px; text-decoration:none; padding:4px 11px; border-radius:7px; }
+      .tabs a:hover{ color:var(--text); background:var(--card); }
+      .spend { margin-left:auto; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; border:1px solid var(--border); border-radius:20px; padding:4px 11px; }
+      .spend.warn-limit{ border-color:var(--amber); color:var(--amber); } .spend.over-limit{ border-color:var(--red); color:var(--red); }
+
+      main { max-width:1400px; margin:0 auto; padding:22px 24px 80px; }
+      .warnbar { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:16px; padding:12px 15px;
+        background:rgba(226,161,58,.10); border:1px solid rgba(226,161,58,.4); border-radius:var(--r-md); font-size:13.5px; }
+      .warnbar b{ color:var(--text); }
+      .btn { border-radius:var(--r-md); padding:8px 15px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--border); text-decoration:none; display:inline-flex; align-items:center; gap:6px; color:var(--text); background:var(--card); transition:background var(--t), border-color var(--t); }
+      .btn:hover{ border-color:var(--border2); background:var(--raised); }
+      .btn.primary{ background:var(--accent); color:var(--accent-fg); border-color:var(--accent); } .btn.primary:hover{ background:var(--accent-hi); }
+      .btn.amber{ background:var(--amber); color:#160f02; border-color:var(--amber); }
+      .btn.ghost{ background:transparent; }
+
+      .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:14px; }
+      .card { background:var(--panel); border:1px solid var(--border); border-radius:var(--r-lg); padding:14px 15px; display:flex; flex-direction:column; min-width:0; }
+      .card-top { display:flex; align-items:center; gap:9px; margin-bottom:3px; }
+      .kind { flex:none; font-size:10px; text-transform:uppercase; letter-spacing:.4px; font-weight:700; display:flex; align-items:center; gap:5px; color:var(--muted); }
+      .kind .dot{ width:7px; height:7px; border-radius:50%; } .k-review .dot{ background:var(--amber);} .k-fix .dot{ background:var(--red);} .k-respond .dot{ background:var(--blue);}
+      .num { flex:none; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
+      .cstatus { margin-left:auto; font-size:11px; font-weight:650; padding:2px 8px; border-radius:5px; border:1px solid transparent; }
+      .cstatus.queued{ background:var(--card); color:var(--faint); border-color:var(--border); }
+      .cstatus.running{ background:rgba(94,106,210,.14); color:#8f98e6; border-color:rgba(94,106,210,.3); }
+      .cstatus.done, .cstatus.proposed{ background:rgba(63,178,127,.14); color:#5fd3a0; border-color:rgba(63,178,127,.3); }
+      .cstatus.pushed{ background:rgba(63,178,127,.2); color:#5fd3a0; }
+      .cstatus.failed{ background:rgba(229,85,91,.14); color:#f2777b; border-color:rgba(229,85,91,.3); }
+      .ctitle { font-size:13.5px; font-weight:600; line-height:1.35; margin-bottom:9px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+      .ctitle a{ color:var(--text); text-decoration:none; } .ctitle a:hover{ color:var(--accent); }
+
+      .stream { background:#0b0e13; border:1px solid var(--border); border-radius:8px; padding:8px 11px; max-height:300px; overflow:auto; }
+      .stream:empty { display:none; }
+      .seg { padding:2px 0; font-size:12px; line-height:1.6; }
+      .seg.reasoning { white-space:pre-wrap; color:#9aa4b2; border-left:2px solid #2c3346; padding-left:9px; margin:3px 0; font-family:ui-monospace,Menlo,monospace; }
+      .seg.text { white-space:pre-wrap; color:var(--text); }
+      .seg.tool { display:inline-flex; gap:6px; color:var(--violet); font:11px ui-monospace,Menlo,monospace; background:rgba(169,139,240,.10); border:1px solid rgba(169,139,240,.25); border-radius:6px; padding:2px 8px; margin:3px 0; }
+      .stream-head { font-size:10px; text-transform:uppercase; letter-spacing:.6px; color:var(--faint); margin:9px 0 4px; display:flex; align-items:center; gap:7px; }
+      .stream-head .live { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 1.2s infinite; }
+      @keyframes pulse { 50%{ opacity:.3; } }
+
+      .verdict { display:inline-block; font-weight:700; padding:3px 9px; border-radius:var(--r-sm); margin:9px 0 6px; text-transform:uppercase; font-size:11px; letter-spacing:.5px; border:1px solid transparent; }
+      .verdict.green{ background:rgba(63,178,127,.14); color:#5fd3a0; border-color:rgba(63,178,127,.32); }
+      .verdict.amber{ background:rgba(226,161,58,.14); color:var(--amber); border-color:rgba(226,161,58,.32); }
+      .verdict.muted{ background:var(--card); color:var(--muted); border-color:var(--border); }
+      .csummary { font-size:12.5px; color:var(--text); margin:0 0 6px; }
+      .findings { margin:4px 0 0; padding-left:16px; font-size:12px; color:var(--muted); } .findings li{ margin-bottom:4px; } .findings b{ color:var(--amber); font-family:ui-monospace,Menlo,monospace; font-size:11px; }
+      .diffstat { font-size:12px; color:var(--muted); font-family:ui-monospace,Menlo,monospace; margin:8px 0 6px; }
+      pre.diff { background:#0b0e13; border:1px solid var(--border); border-radius:8px; padding:8px 11px; font:11px/1.5 ui-monospace,Menlo,monospace; color:#9fb0c2; max-height:220px; overflow:auto; white-space:pre; margin:0; }
+      .di-add{ color:var(--green); } .di-del{ color:var(--red); } .di-hunk{ color:var(--blue); }
+      .gate { margin-top:11px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+      .warn { color:var(--red); font-size:12px; } .done-note{ color:var(--green); font-size:12.5px; }
+      .empty { text-align:center; color:var(--muted); font-size:16px; padding:80px 0; }
+      .receipt { font-size:11px; color:var(--faint); font-variant-numeric:tabular-nums; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>don't<span class="dp">panic</span></h1>
+      <div class="tabs"><a href="/now">Now</a><a href="/">Board</a><a href="/parallel" style="color:var(--text);font-weight:650;background:var(--card)">Parallel</a></div>
+      <span class="spend" id="spend">◈ …</span>
+    </header>
+    <main>
+      <div id="warn"></div>
+      <div id="grid" class="grid"></div>
+    </main>
+
+    <script>
+      const esc = (s) => (s || "").replace(/[&<>]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
+      const repoTag = (s) => s;
+      const fmtTok = (n) => n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(Math.round(n || 0));
+      const UNIT = localStorage.getItem("dp_unit") || "usd";
+      const KINDCLS = { review: "k-review", fix: "k-fix" };
+      let SPENT = { usd: 0, tokens: 0 }, LIMITS = { usd: 0, tokens: 0 }, EST = {}, EST_TOK = {};
+
+      function renderStream(segments, running) {
+        if (!segments || !segments.length) return "";
+        const body = segments.map((s) => {
+          if (s.kind === "tool") return `<div class="seg tool">↪ ${esc(s.text)}</div>`;
+          if (s.kind === "reasoning") return `<div class="seg reasoning">${esc(s.text.trim())}</div>`;
+          return `<div class="seg text">${esc(s.text)}</div>`;
+        }).join("");
+        return `<div class="stream-head">${running ? '<span class="live"></span>reasoning · live' : "reasoning + output"}</div><div class="stream" data-stream>${body}</div>`;
+      }
+      function renderDiff(d) {
+        return (d || "").split("\n").map((l) => {
+          const e = esc(l);
+          if (l.startsWith("+") && !l.startsWith("+++")) return `<span class="di-add">${e}</span>`;
+          if (l.startsWith("-") && !l.startsWith("---")) return `<span class="di-del">${e}</span>`;
+          if (l.startsWith("@@")) return `<span class="di-hunk">${e}</span>`;
+          return e;
+        }).join("\n");
+      }
+      async function fetchStatus() {
+        try {
+          const s = await (await fetch("/api/status")).json();
+          SPENT = { usd: s.today || 0, tokens: s.todayTokens || 0 };
+          LIMITS = { usd: s.limitUsd || 0, tokens: s.limitTokens || 0 };
+          if (s.est) for (const [k, v] of Object.entries(s.est)) { EST[k] = v.usd; EST_TOK[k] = v.tokens; }
+          const el = document.getElementById("spend");
+          const frac = UNIT === "tok" ? (LIMITS.tokens ? Math.round(SPENT.tokens / LIMITS.tokens * 100) : 0) : (LIMITS.usd ? Math.round(SPENT.usd / LIMITS.usd * 100) : 0);
+          el.textContent = UNIT === "tok"
+            ? `◈ ${fmtTok(SPENT.tokens)}${LIMITS.tokens ? " / " + fmtTok(LIMITS.tokens) : ""} tok · ${frac}% today`
+            : `◈ $${SPENT.usd.toFixed(2)}${LIMITS.usd ? " / $" + LIMITS.usd.toFixed(2) : ""} · ${frac}% today`;
+          el.classList.toggle("warn-limit", frac >= 80 && frac < 100);
+          el.classList.toggle("over-limit", frac >= 100);
+        } catch (e) { /* ignore */ }
+      }
+
+      // Per-card state
+      const CARDS = []; // { sel, turn, kind, title, url, jobId, pollUrl, job, submitted, pushed }
+      let poller = null;
+
+      function costText(kind) {
+        if (UNIT === "tok") return `~${fmtTok(EST_TOK[kind] || 0)} tok`;
+        return `~$${(EST[kind] || 0).toFixed(2)}`;
+      }
+
+      async function load() {
+        await fetchStatus();
+        let jobs;
+        try { jobs = JSON.parse(sessionStorage.getItem("dp_parallel") || "[]"); } catch (e) { jobs = []; }
+        if (!jobs.length) {
+          document.getElementById("grid").innerHTML = `<div class="empty">Nothing selected. <a href="/" style="color:var(--accent)">Pick PRs on the Board</a> and click “Resolve in parallel”.</div>`;
+          return;
+        }
+        for (const j of jobs) CARDS.push({ ...j, jobId: null, pollUrl: null, job: null, submitted: false, pushed: false });
+
+        // Budget gate: if the batch would exceed the remaining daily budget, confirm first.
+        let estUsd = 0, estTok = 0;
+        for (const c of CARDS) { estUsd += EST[c.kind] || 0; estTok += EST_TOK[c.kind] || 0; }
+        const remUsd = LIMITS.usd ? Math.max(0, LIMITS.usd - SPENT.usd) : Infinity;
+        const remTok = LIMITS.tokens ? Math.max(0, LIMITS.tokens - SPENT.tokens) : Infinity;
+        const overBudget = estUsd > remUsd || estTok > remTok;
+        const estStr = UNIT === "tok" ? `~${fmtTok(estTok)} tok` : `~$${estUsd.toFixed(2)}`;
+
+        renderGrid(); // show the cards (idle) immediately
+        if (overBudget) {
+          document.getElementById("warn").innerHTML =
+            `<div class="warnbar">⚠ This batch (<b>${estStr}</b>) would exceed your remaining daily budget. Launch anyway? Every push/submit still needs your click. ` +
+            `<button class="btn amber" id="goAnyway">Launch ${CARDS.length} anyway</button> <a class="btn ghost" href="/">back to Board</a></div>`;
+          document.getElementById("goAnyway").onclick = () => { document.getElementById("warn").innerHTML = ""; launchAll(); };
+        } else {
+          document.getElementById("warn").innerHTML =
+            `<div class="warnbar">⚡ Resolving <b>${CARDS.length}</b> in parallel · ${estStr} total, at most. Read-only reviews and isolated-clone fixes — <b>nothing is submitted or pushed until you approve each one.</b></div>`;
+          launchAll();
+        }
+      }
+
+      async function launchAll() {
+        await Promise.all(CARDS.map(launchOne));
+        poller = setInterval(pollAll, 600);
+      }
+      async function launchOne(c) {
+        const q = "?task=" + encodeURIComponent(c.sel);
+        const endpoint = c.kind === "fix" ? "/api/now/fix" : "/api/now/launch";
+        try {
+          const r = await (await fetch(endpoint + q, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })).json();
+          if (r.error || !r.jobId) { c.job = { status: "failed", error: r.error || "launch failed", segments: [] }; }
+          else { c.jobId = r.jobId; c.pollUrl = c.kind === "fix" ? "/api/fix/" + r.jobId : "/api/jobs/" + r.jobId; }
+        } catch (e) { c.job = { status: "failed", error: "launch failed", segments: [] }; }
+        renderGrid();
+      }
+      async function pollAll() {
+        let anyRunning = false;
+        await Promise.all(CARDS.map(async (c) => {
+          if (!c.pollUrl) return;
+          const terminal = c.job && c.job.status !== "running";
+          if (terminal) return; // already finished; keep its last state
+          try { c.job = await (await fetch(c.pollUrl)).json(); } catch (e) { return; }
+          if (c.job.status === "running") anyRunning = true;
+        }));
+        renderGrid();
+        fetchStatus();
+        if (!anyRunning && CARDS.every((c) => c.job && c.job.status !== "running")) { clearInterval(poller); }
+      }
+
+      function renderGrid() {
+        // capture per-stream scroll (pin to bottom unless user scrolled up)
+        const scrolls = {};
+        document.querySelectorAll(".card").forEach((card) => {
+          const el = card.querySelector("[data-stream]");
+          if (el) scrolls[card.dataset.sel] = el.scrollHeight - el.scrollTop - el.clientHeight < 28;
+        });
+        document.getElementById("grid").innerHTML = CARDS.map(renderCard).join("");
+        // restore + wire
+        document.querySelectorAll(".card").forEach((card) => {
+          const el = card.querySelector("[data-stream]");
+          if (el && scrolls[card.dataset.sel] !== false) el.scrollTop = el.scrollHeight;
+        });
+        CARDS.forEach(wireCard);
+      }
+
+      function renderCard(c) {
+        // status: queued (not launched) → starting… (launched, no poll yet) → running → terminal
+        let j, running, statusLabel, statusClass;
+        if (c.job && c.job.status) { j = c.job; running = j.status === "running"; statusLabel = running ? "running" : j.status; statusClass = j.status; }
+        else if (c.jobId) { j = { status: "starting…", segments: [] }; running = true; statusLabel = "starting…"; statusClass = "running"; }
+        else { j = { status: "queued", segments: [] }; running = false; statusLabel = "queued"; statusClass = "queued"; }
+        const kcls = KINDCLS[c.kind] || "";
+        const receipt = [];
+        if (j.costUsd != null) receipt.push("$" + j.costUsd.toFixed(2));
+        if (j.tokens) receipt.push(fmtTok(j.tokens) + " tok");
+        let gate = "";
+        if (c.kind === "review" && j.status === "done" && j.result) {
+          const r = j.result;
+          const vcls = r.verdict === "approve" ? "green" : r.verdict === "request_changes" ? "amber" : "muted";
+          const findings = (r.findings || []).map((f) => `<li><b>${esc((f.file || "") + (f.line ? ":" + f.line : ""))}</b> ${esc(f.point)}</li>`).join("");
+          gate = `<div class="verdict ${vcls}">${esc(r.verdict)}</div><p class="csummary">${esc(r.summary)}</p>${findings ? `<ul class="findings">${findings}</ul>` : ""}` +
+            (c.submitted ? `<div class="gate"><span class="done-note">✓ posted to GitHub</span></div>`
+              : `<div class="gate" data-gate="submit"><button class="btn ghost" data-act="revealSubmit">Submit verdict →</button>
+                   <span data-el="confirm" style="display:none"><span class="warn">Posts to ${esc(repoTag(c.sel.split("#")[0]))}#${c.sel.split("#")[1]}. </span><button class="btn amber" data-act="doSubmit">Yes</button> <button class="btn ghost" data-act="cancel">cancel</button></span></div>`);
+        } else if (c.kind === "fix" && j.status === "proposed") {
+          gate = `<div class="diffstat">${esc(j.diffStat || "")}</div><pre class="diff">${renderDiff(j.diff)}</pre>` +
+            (c.pushed ? `<div class="gate"><span class="done-note">✓ pushed</span></div>`
+              : `<div class="gate" data-gate="push"><button class="btn ghost" data-act="revealPush">Push to PR branch →</button>
+                   <span data-el="confirm" style="display:none"><span class="warn">Pushes to ${esc(j.branch || c.sel)}. </span><button class="btn amber" data-act="doPush">Yes</button> <button class="btn ghost" data-act="cancel">cancel</button></span></div>`);
+        } else if (j.status === "failed") {
+          gate = `<p class="warn" style="margin-top:9px">${esc(j.error || "failed")}</p>`;
+        } else if (c.kind === "fix" && j.status === "pushed") {
+          gate = `<div class="gate"><span class="done-note">✓ pushed — CI will re-run</span></div>`;
+        }
+        return `<div class="card" data-sel="${esc(c.sel)}">
+          <div class="card-top">
+            <span class="kind ${kcls}"><span class="dot"></span>${c.kind}</span>
+            <span class="num">${esc(repoTag(c.sel.split("#")[0]))}#${esc(c.sel.split("#")[1])}</span>
+            <span class="cstatus ${esc(statusClass)}">${esc(statusLabel)}${receipt.length ? ` · <span class="receipt">${receipt.join(" · ")}</span>` : ""}</span>
+          </div>
+          <div class="ctitle"><a href="/now?task=${encodeURIComponent(c.sel)}" title="open in Now">${esc(c.title || "")}</a></div>
+          ${renderStream(j.segments, running)}
+          ${gate}
+        </div>`;
+      }
+
+      function wireCard(c) {
+        const card = document.querySelector(`.card[data-sel="${CSS.escape(c.sel)}"]`);
+        if (!card) return;
+        const gate = card.querySelector("[data-gate]");
+        if (!gate) return;
+        const q = (a) => gate.querySelector(`[data-act="${a}"]`);
+        const confirm = gate.querySelector('[data-el="confirm"]');
+        const reveal = q("revealSubmit") || q("revealPush");
+        if (reveal) reveal.onclick = () => { reveal.style.display = "none"; confirm.style.display = "inline"; };
+        const cancel = q("cancel");
+        if (cancel) cancel.onclick = () => { confirm.style.display = "none"; reveal.style.display = "inline"; };
+        const ds = q("doSubmit");
+        if (ds) ds.onclick = async () => {
+          const r = c.job.result;
+          const body = r.summary + "\n\n" + (r.findings || []).map((f) => `- ${(f.file || "")}${f.line ? ":" + f.line : ""} ${f.point}`).join("\n") + "\n\n_reviewed with dontpanic_";
+          await fetch("/api/jobs/" + c.jobId + "/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ verdict: r.verdict, body }) });
+          c.submitted = true; renderGrid();
+        };
+        const dp = q("doPush");
+        if (dp) dp.onclick = async () => {
+          const r = await (await fetch("/api/fix/" + c.jobId + "/push", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: "fix " + c.sel + " via dontpanic" }) })).json();
+          if (r.error) { confirm.innerHTML = `<span class="warn">${esc(r.error)}</span>`; return; }
+          c.pushed = true; renderGrid();
+        };
+      }
+
+      load();
+    </script>
+  </body>
+</html>

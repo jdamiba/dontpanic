@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+# real-data preview embeds live Slack/calendar/PII — never commit
+design/homepage-real.html
+
+# internal design scratch (live data) — kept local, not published
+design/

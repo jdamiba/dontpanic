@@ -1,0 +1,59 @@
+{
+  "name": "@jdamiba/dontpanic",
+  "version": "0.1.0",
+  "description": "A calm command center + coach for clearing your agentic-coding PR backlog — review, fix, and prioritize PRs by customer impact, driven by your own Claude connectors.",
+  "type": "module",
+  "bin": {
+    "dontpanic": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc && rm -rf dist/commands/public && cp -R src/commands/public dist/commands/public",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm test",
+    "dontpanic": "tsx src/cli.ts",
+    "dashboard": "tsx src/cli.ts dashboard",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "files": ["dist"],
+  "keywords": [
+    "pull-request",
+    "code-review",
+    "cli",
+    "dashboard",
+    "claude",
+    "agent",
+    "github",
+    "developer-tools",
+    "productivity"
+  ],
+  "author": "Joseph Damiba",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jdamiba/dontpanic.git"
+  },
+  "homepage": "https://github.com/jdamiba/dontpanic#readme",
+  "bugs": {
+    "url": "https://github.com/jdamiba/dontpanic/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.0",
+    "commander": "^13.1.0",
+    "fastify": "^5.2.0",
+    "@fastify/static": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
