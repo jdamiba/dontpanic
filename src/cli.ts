@@ -18,15 +18,28 @@ function requireConfigured(): boolean {
 const program = new Command();
 program.name("dontpanic").description("A calm command center + coach for clearing your agentic backlog").version("0.1.0");
 
-// No subcommand → explain what this is + the token deal, run first-time setup, check prerequisites.
-program.action(async () => {
+// Guided onboarding: explain → check prerequisites (actionable) → configure → point to launch.
+async function onboard(): Promise<void> {
   welcome();
-  await runSetup(); // prompts only on first run
-  await doctor();
-});
+  const ready = await doctor();
+  if (!ready) {
+    console.log("\n  Fix the ✗ items above, then run  dontpanic  again to finish setup.\n");
+    return;
+  }
+  await runSetup(); // prompts on first run; no-op once configured
+  console.log(
+    isConfigured()
+      ? "\n  ✓ You're all set. Start the dashboard:  dontpanic dashboard\n"
+      : "\n  Add at least one repo with  dontpanic setup , then run  dontpanic dashboard .\n",
+  );
+}
 
+// No subcommand → run the guided onboarding.
+program.action(onboard);
+
+program.command("onboard").description("Guided first-time setup: check prerequisites + configure").action(onboard);
 program.command("setup").description("Set your GitHub login + repos to watch").action(() => runSetup(true));
-program.command("doctor").description("Check prerequisites (claude CLI, gh auth, connectors)").action(doctor);
+program.command("doctor").description("Check prerequisites (gh, claude CLI, connectors)").action(async () => { await doctor(); });
 
 program
   .command("sync")

@@ -4,18 +4,29 @@ import { loadConfig, DIR } from "../config.js";
 
 const execFileP = promisify(execFile);
 
-async function check(label: string, fn: () => Promise<string>): Promise<boolean> {
-  try {
-    const detail = await fn();
-    console.log(`  ✓ ${label}${detail ? ` — ${detail}` : ""}`);
-    return true;
-  } catch (e) {
-    console.log(`  ✗ ${label} — ${String((e as Error).message).split("\n")[0].slice(0, 90)}`);
-    return false;
-  }
+/** Run a command, returning trimmed stdout, or null if it's missing/errors. */
+async function tryCmd(cmd: string, args: string[], timeout = 15000): Promise<string | null> {
+  try { return (await execFileP(cmd, args, { timeout })).stdout.trim(); }
+  catch { return null; }
 }
 
-/** What dontpanic is + the token deal. Shown when run with no command. */
+// The claude.ai connectors dontpanic drives (through the `claude` CLI, no separate tokens).
+const CONNECTORS = ["Slack", "Linear", "Google Calendar"];
+
+/** Connector connection status, read for FREE from `claude mcp list` (no model call). */
+async function connectorStatus(): Promise<Record<string, boolean> | null> {
+  const out = await tryCmd("claude", ["mcp", "list"], 45000);
+  if (out === null) return null;
+  const lines = out.split("\n");
+  const st: Record<string, boolean> = {};
+  for (const name of CONNECTORS) {
+    const line = lines.find((l) => l.includes(`claude.ai ${name}:`));
+    st[name] = !!line && /Connected|✔/.test(line);
+  }
+  return st;
+}
+
+/** What dontpanic is + the token deal. Shown at the top of onboarding. */
 export function welcome(): void {
   console.log(`
 don'tpanic — a calm command center + coach for clearing your PR backlog.
@@ -23,47 +34,66 @@ don'tpanic — a calm command center + coach for clearing your PR backlog.
 When you run  dontpanic dashboard  it:
   • fetches your open PRs, the reviews you owe, and (on request) your calendar
   • picks the single highest-impact thing to work on — and tells you WHY
-  • orients you on the issue, checks acceptance criteria, flags missing context
+  • briefs you on each PR's state + the changes it needs
   • deploys + monitors an agent to review or fix it — you approve every write
-  • teaches you something (CS / process) as you close each ticket
 
-Tokens: GitHub data is FREE. AI reasoning — impact triage, full context, and the
-review/fix agents — costs tokens, and dontpanic NEVER spends without you clicking a
-clearly-priced button. Every button shows what it costs AND what fraction of your
-daily limit that is; toggle the header between dollars and tokens. Spend and limit
-are always in the header. Set your daily caps in ${DIR}/config.json ("budget").
+It drives your own tools: GitHub via  gh , and reasoning/agents via the
+ claude  CLI, reusing your claude.ai connectors (Slack, Linear, Calendar).
+No tokens of its own. GitHub data is FREE; every AI action is a clearly-priced,
+human-gated click, shown against your daily limit (set in ${DIR}/config.json).
 `);
 }
 
-/** Verify prerequisites — the tools + connectors dontpanic drives. */
-export async function doctor(): Promise<void> {
+/** Guided, actionable prerequisite check. Returns true if the critical tools are ready. */
+export async function doctor(): Promise<boolean> {
   console.log("Checking your setup:\n");
-  await check("Node", async () => process.version);
-  await check("claude CLI (the default agent dontpanic drives)", async () => (await execFileP("claude", ["--version"])).stdout.trim());
-  await check("GitHub CLI authenticated", async () => {
-    await execFileP("gh", ["auth", "status"]);
-    return "gh is authed";
-  });
-  // Codex is optional — a second agent backend, offered in the cockpit only when present.
-  try {
-    const v = (await execFileP("codex", ["--version"])).stdout.trim();
-    console.log(`  ✓ codex CLI (optional second agent) — ${v}`);
-  } catch {
-    console.log("  · codex CLI not found (optional) — install it to pick Codex as the review/fix agent");
+  let ready = true;
+
+  console.log(`  ✓ Node ${process.version}`);
+
+  // GitHub CLI — required for all PR data.
+  if ((await tryCmd("gh", ["--version"])) === null) {
+    console.log("  ✗ GitHub CLI (gh) not found\n      → install it: https://cli.github.com");
+    ready = false;
+  } else if ((await tryCmd("gh", ["auth", "status"])) !== null) {
+    console.log("  ✓ GitHub CLI — authenticated");
+  } else {
+    console.log("  ✗ GitHub CLI not signed in\n      → run: gh auth login");
+    ready = false;
   }
+
+  // Claude Code CLI — the agent dontpanic drives.
+  const clv = await tryCmd("claude", ["--version"]);
+  if (clv === null) {
+    console.log("  ✗ Claude Code CLI (claude) not found\n      → install it: https://docs.claude.com/en/docs/claude-code");
+    ready = false;
+  } else {
+    console.log(`  ✓ Claude Code CLI — ${clv}`);
+    // Connectors are recommended (impact ranking, context, calendar), not strictly required.
+    console.log("  … checking Claude connectors (this pings your integrations)…");
+    const st = await connectorStatus();
+    if (st === null) {
+      console.log("  · Couldn't read connectors (`claude mcp list` failed) — check `claude` is signed in.");
+    } else {
+      for (const name of CONNECTORS) {
+        console.log(
+          st[name]
+            ? `  ✓ Connector: ${name} — connected`
+            : `  · Connector: ${name} — not connected (recommended)\n      → add it at claude.ai → Settings → Connectors`,
+        );
+      }
+    }
+  }
+
+  // Codex — optional second agent backend.
+  const cx = await tryCmd("codex", ["--version"]);
+  console.log(cx ? `  ✓ codex CLI (optional second agent) — ${cx}` : "  · codex CLI not found (optional second agent)");
 
   const cfg = loadConfig();
   console.log(
     cfg.repos.length
-      ? `\n  Watching repos: ${cfg.repos.join(", ")}  (as @${cfg.me || "?"})`
-      : `\n  · No repos configured yet — run  dontpanic setup  to pick the repos to watch.`,
+      ? `\n  Watching: ${cfg.repos.join(", ")}  (as @${cfg.me || "?"})`
+      : "\n  · No repos configured yet — run  dontpanic setup .",
   );
-  console.log(`
-  dontpanic reaches Slack, Linear, and Google Calendar THROUGH the claude CLI's own
-  connectors — no separate tokens. Make sure these are connected in your Claude account:
-      • Slack   • Linear   • Google Calendar
-  They're exercised (and thus verified) the first time you spend on context/triage.
-
-  Run  dontpanic dashboard  to start.
-`);
+  return ready;
 }
