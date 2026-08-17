@@ -2,6 +2,7 @@ import { createInterface } from "node:readline";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { configExists, saveConfig, loadConfig, DIR } from "../config.js";
+import { codexAvailable, isBackend } from "../backends.js";
 
 const execFileP = promisify(execFile);
 
@@ -38,11 +39,17 @@ export async function runSetup(force = false): Promise<void> {
   const me = await ask("Your GitHub login", meDefault);
   const reposRaw = await ask("Repos to watch (owner/name, comma-separated)", cur.repos.join(", "));
   const chRaw = await ask("Slack channels for incident/customer signal (optional, comma-separated)", cur.signalChannels.join(", "));
+  // Only offer the agent choice when Codex is installed — otherwise it's Claude by default.
+  let defaultAgent = cur.defaultAgent;
+  if (await codexAvailable()) {
+    const a = (await ask("Default agent for review/fix — claude or codex", cur.defaultAgent)).toLowerCase();
+    defaultAgent = isBackend(a) ? a : cur.defaultAgent;
+  }
   rl.close();
 
   const repos = reposRaw.split(",").map((s) => s.trim()).filter(Boolean);
   const signalChannels = chRaw.split(",").map((s) => s.trim().replace(/^#/, "")).filter(Boolean);
-  saveConfig({ ...cur, me, repos, signalChannels }); // preserve budget/models + any other fields
+  saveConfig({ ...cur, me, repos, signalChannels, defaultAgent }); // preserve budget/models + any other fields
   console.log(
     repos.length
       ? `\n  Saved — watching ${repos.join(", ")} as @${me}.\n  Run  dontpanic dashboard  to start.\n`

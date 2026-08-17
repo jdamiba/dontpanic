@@ -367,12 +367,12 @@
           ? "Auto mode: prioritize + gather run automatically per task. Agent launches and writes still need a click. Click to require a click for every spend."
           : "You decide every spend. Click to let the reasoning spends (prioritize + gather) run automatically — agent launches and writes stay manual.";
       }
-      let AGENT = "claude", HAS_CODEX = false;
+      let AGENT = "claude", HAS_CODEX = false, AGENT_PINNED = false;
       function updateAgentPicker() {
         document.querySelectorAll(".agent-sel").forEach((sel) => {
           sel.style.display = HAS_CODEX ? "inline-block" : "none";
           sel.value = AGENT;
-          sel.onchange = () => { AGENT = sel.value; document.querySelectorAll(".agent-sel").forEach((s) => (s.value = AGENT)); };
+          sel.onchange = () => { AGENT = sel.value; AGENT_PINNED = true; document.querySelectorAll(".agent-sel").forEach((s) => (s.value = AGENT)); };
         });
       }
       const agentQ = (qs) => qs + (qs ? "&" : "?") + "agent=" + AGENT;
@@ -384,6 +384,7 @@
           if (s.est) for (const [k, v] of Object.entries(s.est)) { EST[k] = v.usd; EST_TOK[k] = v.tokens; EST_N[k] = v.n; }
           AUTO = !!s.autoSpend;
           HAS_CODEX = !!s.codex;
+          if (!AGENT_PINNED && s.defaultAgent) AGENT = s.defaultAgent; // honor the configured default until the user picks
           updateAgentPicker(); reflectAuto(); applyUnits(); renderBurnbar();
         } catch (e) { /* ignore */ }
       }

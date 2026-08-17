@@ -85,11 +85,18 @@ export async function doctor(): Promise<boolean> {
     }
   }
 
-  // Codex — optional second agent backend.
-  const cx = await tryCmd("codex", ["--version"]);
-  console.log(cx ? `  ✓ codex CLI (optional second agent) — ${cx}` : "  · codex CLI not found (optional second agent)");
-
   const cfg = loadConfig();
+
+  // Codex — an optional ALTERNATE agent for the review/fix code edits only. The reasoning
+  // (impact ranking, context, briefs, calendar) always runs on Claude + its connectors.
+  const cx = await tryCmd("codex", ["--version"]);
+  if (cx) {
+    console.log(`  ✓ codex CLI — ${cx} (can run review/fix; default agent: ${cfg.defaultAgent})`);
+    if (cfg.defaultAgent === "codex") console.log("      Codex handles code edits; Claude still does impact ranking / context / briefs.");
+  } else {
+    console.log("  · codex CLI not found (optional) — install it to run review/fix on Codex instead of Claude");
+  }
+
   console.log(
     cfg.repos.length
       ? `\n  Watching: ${cfg.repos.join(", ")}  (as @${cfg.me || "?"})`

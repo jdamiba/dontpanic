@@ -14,7 +14,8 @@ import { sync } from "./sync.js";
 import { spendSummary, estimates } from "../spend.js";
 import { codexAvailable, isBackend, type Backend } from "../backends.js";
 
-const pickBackend = (v?: string): Backend => (isBackend(v) ? v : "claude");
+// Explicit ?agent= wins; otherwise fall back to the user's configured default agent.
+const pickBackend = (v?: string): Backend => (isBackend(v) ? v : loadConfig().defaultAgent);
 
 let lastSyncAt = 0;
 let syncing = false; // guards against overlapping manual + scheduled syncs
@@ -107,10 +108,13 @@ export async function startDashboard(port: number, syncOnStart = true): Promise<
   app.get("/parallel", (_req, reply) => reply.sendFile("parallel.html"));
 
   // Token spend + last-sync, for the always-visible transparency meter.
-  app.get("/api/status", async () => ({
-    ...spendSummary(), est: estimates(), autoSpend: loadConfig().autoSpend,
-    lastSyncAt, codex: await codexAvailable(),
-  }));
+  app.get("/api/status", async () => {
+    const cfg = loadConfig();
+    const codex = await codexAvailable();
+    // If the configured default is codex but it's not installed, fall back to claude.
+    const defaultAgent = cfg.defaultAgent === "codex" && !codex ? "claude" : cfg.defaultAgent;
+    return { ...spendSummary(), est: estimates(), autoSpend: cfg.autoSpend, defaultAgent, lastSyncAt, codex };
+  });
 
   // Pull fresh PRs from GitHub on demand (free — gh only). Reprioritization stays a
   // separate paid click. Serialized against the scheduled sync via a single in-flight guard.

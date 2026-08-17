@@ -17,6 +17,7 @@ export interface Config {
   me: string; // my GitHub login
   repos: string[]; // "owner/name"
   signalChannels: string[]; // Slack channels that carry incident/customer/escalation signal, for impact ranking
+  defaultAgent: "claude" | "codex"; // which agent runs review/fix by default (the picker can override per-launch)
   budget: { dailyUsd: number; dailyTokens: number }; // per-day spend caps shown in the UI
   autoSpend: boolean; // true = auto-run reasoning spends (prioritize/gather/rank); false = every spend is a click
   models: Models; // per-job model selection
@@ -35,6 +36,7 @@ const DEFAULT: Config = {
   me: "", // captured on first run from your gh login
   repos: [], // set via `dontpanic setup`
   signalChannels: [], // e.g. ["incidents", "support"] — optional, sharpens impact ranking
+  defaultAgent: "claude", // review/fix run on Claude unless you prefer Codex
   budget: { dailyUsd: 15, dailyTokens: 2_000_000 },
   autoSpend: false, // default: you click every spend
   models: {
