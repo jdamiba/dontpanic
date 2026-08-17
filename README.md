@@ -72,6 +72,19 @@ Set your daily caps and per-job models in `~/.dontpanic/config.json` (`budget`, 
 
 ---
 
+## Customize the AI to your team
+
+dontpanic's defaults are opinions, and you can override them without touching code — drop optional markdown files in your config dir (`~/.dontpanic/`), like a `CLAUDE.md` for your PR workflow:
+
+| File | Shapes | Example |
+|---|---|---|
+| `prioritization.md` | How PRs are ranked ("what to do first") | *"Rank by: 1) customer SLA breaches, 2) PRs blocking a teammate, 3) security. Deprioritize refactors."* |
+| `review-guidelines.md` | House rules the review + fix agents apply | *"- Use Conventional Commits. - Flag any new N+1 query. - Require a test for every bugfix."* |
+
+If a file is absent, the built-in default is used. `dontpanic doctor` shows which are active, and the "view the exact prompt" panel in the UI reflects them.
+
+Structured settings live in `~/.dontpanic/config.json`: `repos`, `signalChannels`, `budget` (daily $/token caps), `models` (per-job model), `defaultAgent` (`claude`/`codex`), `autoSpend`.
+
 ## License
 
 MIT © Joseph Damiba

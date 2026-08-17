@@ -5,7 +5,7 @@
 import { spawn } from "node:child_process";
 import { cached, peek } from "./cache.js";
 import { recordSpend } from "./spend.js";
-import { loadConfig, type Models } from "./config.js";
+import { loadConfig, customText, CUSTOM_FILES, type Models } from "./config.js";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -261,9 +261,12 @@ async function prioritizeFresh(candidates: Candidate[]): Promise<Priority> {
   const chHint = channels.length
     ? `your incident/escalation/customer channels (${channels.map((c) => "#" + c).join(", ")})`
     : `your team's incident/escalation and customer/support channels`;
+  // Users can define their own prioritization framework in ~/.dontpanic/prioritization.md.
+  const rubric = customText(CUSTOM_FILES.prioritization)
+    || `HIGH impact: production incidents/outages, customer-blocking bugs, named customers or deals at risk, security issues, work that unblocks many people or downstream PRs. LOW impact: internal refactors, chores, docs, nice-to-haves.`;
   const prompt = [
-    `I'm an engineer drowning in review/fix work. Decide which of these tasks I should do FIRST, ranked by CUSTOMER IMPACT and urgency to close. Be decisive and honest about your reasoning.`,
-    `HIGH impact: production incidents/outages, customer-blocking bugs, named customers or deals at risk, security issues, work that unblocks many people or downstream PRs. LOW impact: internal refactors, chores, docs, nice-to-haves.`,
+    `I'm an engineer drowning in review/fix work. Decide which of these tasks I should do FIRST, ranked by the framework below. Be decisive and honest about your reasoning.`,
+    `Prioritization framework (rank by this):\n${rubric}`,
     gatheredCount
       ? `Some tasks below already have gathered context (the "why" from Slack/Linear) — RELY ON IT and do NOT re-search those. Only run at most 1-2 targeted Slack searches total, for very recent incidents/escalations in ${chHint} that the gathered context wouldn't capture. Do NOT use skills or Bash.`
       : `Be frugal with tools: at most 2-3 targeted Slack searches TOTAL (recent incidents/escalations/customer names in ${chHint}), NOT one per task. Rank mainly from the titles + turn types. Do NOT use skills or Bash.`,

@@ -11,6 +11,7 @@ import { CLONES_DIR } from "./config.js";
 import { recordSpend } from "./spend.js";
 import { spawnAgent, parseLine, applyEvent, type Backend, type Segment } from "./backends.js";
 import { gatheredContextLines, type Gathered } from "./broker.js";
+import { houseRulesLines } from "./agent.js";
 
 const execFileP = promisify(execFile);
 
@@ -89,6 +90,7 @@ export const CI_LOG_PLACEHOLDER = "[The failing CI logs (from `gh run view --log
 
 export function buildFixPrompt(repo: string, number: number, turn: string, ciLog: string, gathered?: Gathered | null): string {
   const guard = [
+    ...houseRulesLines(), // your team's standards from ~/.dontpanic/review-guidelines.md
     ``,
     `## Ground rules`,
     ``,

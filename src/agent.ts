@@ -7,7 +7,14 @@ import { ghText } from "./gh.js";
 import { recordSpend } from "./spend.js";
 import { spawnAgent, parseLine, applyEvent, type Backend, type Segment } from "./backends.js";
 import { gatheredContextLines, type Gathered } from "./broker.js";
+import { customText, CUSTOM_FILES } from "./config.js";
 import type { ContextBundle } from "./context.js";
+
+/** House rules from ~/.dontpanic/review-guidelines.md, as prompt lines (empty if none). */
+export function houseRulesLines(): string[] {
+  const rules = customText(CUSTOM_FILES.reviewGuidelines);
+  return rules ? [``, `## House rules — your team's standards; apply and enforce these`, ``, rules] : [];
+}
 
 export type JobStatus = "running" | "done" | "failed";
 
@@ -70,6 +77,7 @@ export function buildReviewPrompt(b: ContextBundle, diff: string, gathered?: Gat
     "```diff",
     diff.slice(0, 250000),
     "```",
+    ...houseRulesLines(),
     ``,
     `## Your verdict`,
     ``,

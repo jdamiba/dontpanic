@@ -72,6 +72,19 @@ export function loadConfig(): Config {
   };
 }
 
+// Optional markdown files in the config dir that customize the AI prompts (like a
+// CLAUDE.md for dontpanic): e.g. prioritization.md (your impact rubric),
+// review-guidelines.md (house rules for the review/fix agents). Absent → built-in default.
+export const CUSTOM_FILES = {
+  prioritization: "prioritization.md",
+  reviewGuidelines: "review-guidelines.md",
+} as const;
+
+/** Read an optional customization file's content (trimmed), or "" if it doesn't exist. */
+export function customText(filename: string): string {
+  try { return readFileSync(join(DIR, filename), "utf8").trim(); } catch { return ""; }
+}
+
 /** True once the user has set the repos to watch (i.e. completed setup). */
 export function isConfigured(): boolean {
   return configExists() && loadConfig().repos.length > 0;

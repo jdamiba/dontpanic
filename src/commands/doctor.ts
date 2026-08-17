@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { loadConfig, DIR } from "../config.js";
+import { loadConfig, customText, CUSTOM_FILES, DIR } from "../config.js";
 
 const execFileP = promisify(execFile);
 
@@ -102,5 +102,11 @@ export async function doctor(): Promise<boolean> {
       ? `\n  Watching: ${cfg.repos.join(", ")}  (as @${cfg.me || "?"})`
       : "\n  · No repos configured yet — run  dontpanic setup .",
   );
+
+  // Active prompt customizations (optional markdown files in the config dir).
+  const active = Object.values(CUSTOM_FILES).filter((f) => customText(f));
+  if (active.length) console.log(`  ✓ Custom prompts in use: ${active.join(", ")}`);
+  else console.log(`  · No custom prompts — drop a prioritization.md or review-guidelines.md in ${DIR} to tailor the AI.`);
+
   return ready;
 }
