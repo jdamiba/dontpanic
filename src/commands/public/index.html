@@ -174,8 +174,9 @@
       const repoTag = (s) => s;
       const KIND = { mine_review:"Review", mine_respond:"Respond", mine_fix:"Fix CI", ready_merge:"Merge", mine_request_review:"Assign" };
       const KINDCLS = { mine_review:"k-review", mine_fix:"k-fix", mine_respond:"k-respond", ready_merge:"k-merge", mine_request_review:"k-assign" };
-      const TURN_ORDER = ["mine_review","mine_respond","ready_merge","mine_fix","mine_request_review"];
-      const ACTIONABLE = new Set(TURN_ORDER);
+      let TURN_ORDER = ["mine_review","mine_respond","ready_merge","mine_fix","mine_request_review"];
+      const ACTIONABLE = new Set(TURN_ORDER); // the SET is fixed; config only reorders it
+
 
       function ci(c) {
         if (c === "passing") return `<span class="ci-pass">✓ CI</span>`;
@@ -335,6 +336,7 @@
           SPENT = { usd: s.today || 0, tokens: s.todayTokens || 0 };
           LIMITS = { usd: s.limitUsd || 0, tokens: s.limitTokens || 0 };
           if (s.est) for (const [k, v] of Object.entries(s.est)) { EST[k] = v.usd; EST_TOK[k] = v.tokens; EST_N[k] = v.n; }
+          if (Array.isArray(s.turnOrder) && s.turnOrder.length) TURN_ORDER = s.turnOrder; // honor configured order
           AUTO = !!s.autoSpend;
           reflectAuto(); applyUnits();
         } catch (e) { /* ignore */ }

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { allPrs, type StoredPr } from "../db.js";
 import { loadConfig, saveConfig } from "../config.js";
-import { pickOneTask, rankTasks, isActionable, scheduleDay, parseHM, DAY_START } from "../planner.js";
+import { pickOneTask, rankTasks, isActionable, scheduleDay, parseHM } from "../planner.js";
 import { assembleContext } from "../context.js";
 import { launchReviewAgent, getJob, submitReview, buildReviewPrompt, DIFF_PLACEHOLDER } from "../agent.js";
 import { gatherContext, gatherDay, gatherMeeting, prioritize, draftPing, sendPing, peekContext, contextImpactLine, briefPr, peekBrief, EMPTY_GATHERED, type Meeting, type Brief } from "../broker.js";
@@ -62,15 +62,16 @@ function standupContext(): string {
 /** Resolve a task by "repo#number" (or short "webapp#123"); default to pickOneTask. */
 function findTask(selector?: string): StoredPr | null {
   const rows = allPrs();
+  const order = loadConfig().turnOrder;
   if (selector) {
     const [repoPart, numPart] = selector.split("#");
     const n = Number(numPart);
     const found = rows.find(
-      (r) => isActionable(r) && r.number === n && (r.repo === repoPart || r.repo.split("/").pop() === repoPart),
+      (r) => isActionable(r, order) && r.number === n && (r.repo === repoPart || r.repo.split("/").pop() === repoPart),
     );
     if (found) return found;
   }
-  return pickOneTask(rows);
+  return pickOneTask(rows, order);
 }
 
 function parse(p: StoredPr) {
@@ -113,7 +114,10 @@ export async function startDashboard(port: number, syncOnStart = true): Promise<
     const codex = await codexAvailable();
     // If the configured default is codex but it's not installed, fall back to claude.
     const defaultAgent = cfg.defaultAgent === "codex" && !codex ? "claude" : cfg.defaultAgent;
-    return { ...spendSummary(), est: estimates(), autoSpend: cfg.autoSpend, defaultAgent, lastSyncAt, codex };
+    return {
+      ...spendSummary(), est: estimates(), autoSpend: cfg.autoSpend, defaultAgent, lastSyncAt, codex,
+      turnOrder: cfg.turnOrder, coaching: cfg.coaching,
+    };
   });
 
   // Pull fresh PRs from GitHub on demand (free — gh only). Reprioritization stays a
@@ -147,7 +151,8 @@ export async function startDashboard(port: number, syncOnStart = true): Promise<
   // focused work, scheduled into a timeline. The rest are deferred to tomorrow.
   app.get<{ Querystring: { cal?: string } }>("/api/plan", async (req) => {
     const withCal = req.query.cal === "1"; // calendar is a paid agent call — only on request
-    const ranked = rankTasks(allPrs()).map((t) => ({
+    const cfg = loadConfig();
+    const ranked = rankTasks(allPrs(), cfg.turnOrder).map((t) => ({
       type: "task" as const,
       ...parse(t),
       kind: KIND[t.turn] ?? t.turn,
@@ -159,22 +164,23 @@ export async function startDashboard(port: number, syncOnStart = true): Promise<
       try { meetings = await gatherDay(iso, label); } catch { meetings = []; }
     }
 
-    // Plan from the current time when the target day is today — 9:00 slots help
-    // nobody at 11. Meetings already over drop off; an in-progress one still leads.
+    // Configurable workday: focus starts at cfg.workday.start, capped at focusHours.
+    const dayStart = parseHM(cfg.workday.start);
+    const focusCap = Math.round(cfg.workday.focusHours * 60);
     const now = new Date();
     const isToday = iso === isoDate(now);
     const nowMin = Math.ceil((now.getHours() * 60 + now.getMinutes()) / 5) * 5;
     if (isToday) meetings = meetings.filter((m) => parseHM(m.end) > nowMin);
-    const startMin = isToday ? Math.max(DAY_START, nowMin) : DAY_START;
+    const startMin = isToday ? Math.max(dayStart, nowMin) : dayStart;
 
-    const { day, focusUsed, courtZero, deferred } = scheduleDay(ranked, meetings, startMin);
+    const { day, focusUsed, courtZero, deferred } = scheduleDay(ranked, meetings, startMin, focusCap);
     return { date: label, day, focusMins: focusUsed, deferred, courtZero, meetingCount: meetings.length, calendar: withCal };
   });
 
   // Impact-first prioritization: which task to close now, and why. Reasoned over
   // the top candidates using Slack + Linear (customer/incident signal). Cached.
   app.post("/api/priority", async () => {
-    const cands = rankTasks(allPrs()).slice(0, 12).map((t) => ({
+    const cands = rankTasks(allPrs(), loadConfig().turnOrder).slice(0, 12).map((t) => ({
       key: `${t.repo.split("/").pop()}#${t.number}`,
       title: t.title,
       turn: t.turn,

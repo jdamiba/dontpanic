@@ -3,6 +3,7 @@
 // Sources not yet integrated are returned honestly as `connected: false`.
 
 import { ghText } from "./gh.js";
+import { loadConfig } from "./config.js";
 import type { StoredPr } from "./db.js";
 
 export type ChangeType = "frontend" | "backend" | "mixed" | "unknown";
@@ -38,14 +39,14 @@ export function findIssue(text: string): string | null {
 }
 
 function detectChangeType(files: string[], repo: string): ChangeType {
-  const fe = files.some((f) => /\.(tsx?|jsx?|css|scss|html)$/.test(f));
-  const be = files.some((f) => /\.py$/.test(f));
+  const fe = files.some((f) => /\.(tsx?|jsx?|vue|svelte|css|scss|html)$/.test(f));
+  const be = files.some((f) => /\.(py|go|rb|rs|java|kt|php|cs)$/.test(f));
   if (fe && be) return "mixed";
   if (fe) return "frontend";
   if (be) return "backend";
-  if (repo.includes("webapp")) return "frontend";
-  if (repo.includes("backend")) return "backend";
-  return "unknown";
+  // Ambiguous (no recognized source files) → fall back to a per-repo hint from config.
+  const hint = loadConfig().repoTypes[repo];
+  return hint === "frontend" || hint === "backend" || hint === "mixed" ? hint : "unknown";
 }
 
 interface Threads {

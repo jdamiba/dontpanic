@@ -202,6 +202,7 @@ export function gatheredContextLines(g: Gathered | null | undefined): string[] {
 }
 
 async function gatherContextFresh(repo: string, number: number, title: string, diff: string): Promise<Gathered> {
+  const coaching = loadConfig().coaching;
   const prompt = [
     `You are gathering review context + orientation for GitHub PR ${repo}#${number}: "${title}".`,
     `Do NOT use skills or Bash. Keep tool results small so they fit inline.`,
@@ -216,7 +217,9 @@ async function gatherContextFresh(repo: string, number: number, title: string, d
     `- "acceptance": the single most relevant acceptance criterion to check THIS PR against, or empty string`,
     `- "explainer": 2-3 tight paragraphs (separated by \\n\\n) orienting an engineer who has NEVER seen this code. Cover: what this part of the codebase does and where it sits; what this PR actually changes and how; the customer impact; and the concrete deliverable. Plain and specific, no filler.`,
     `- "gaps": the MOST important missing context that would make this hard to review or close confidently — e.g. no acceptance criteria, no repro steps, no linked issue/ticket, unclear scope, no owner. For each, suggest ONE concrete action to get that context INTO the system (ask a specific person in a specific Slack channel, propose acceptance criteria for confirmation, link the incident/issue). Empty array if it already has enough. Shape: [{"gap":"...","action":"..."}], at most 3.`,
-    `- "coach": ONE genuinely useful thing to learn from THIS task so the user levels up as they close it. Pick the most valuable of: a computer-science / data-structures / systems concept the code actually touches (name it, then teach it in 2-3 sentences grounded in this diff — e.g. idempotency, LRU eviction, backpressure, index selectivity, race conditions); OR an agentic-coding / prompting practice; OR a process lesson. Shape: {"concept":"short title","note":"2-3 sentences that actually teach it, tied to this code"}.`,
+    ...(coaching
+      ? [`- "coach": ONE genuinely useful thing to learn from THIS task so the user levels up as they close it. Pick the most valuable of: a computer-science / data-structures / systems concept the code actually touches (name it, then teach it in 2-3 sentences grounded in this diff — e.g. idempotency, LRU eviction, backpressure, index selectivity, race conditions); OR an agentic-coding / prompting practice; OR a process lesson. Shape: {"concept":"short title","note":"2-3 sentences that actually teach it, tied to this code"}.`]
+      : []),
     ``,
     `Unified diff:`,
     "```diff",

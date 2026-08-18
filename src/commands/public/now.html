@@ -367,7 +367,7 @@
           ? "Auto mode: prioritize + gather run automatically per task. Agent launches and writes still need a click. Click to require a click for every spend."
           : "You decide every spend. Click to let the reasoning spends (prioritize + gather) run automatically — agent launches and writes stay manual.";
       }
-      let AGENT = "claude", HAS_CODEX = false, AGENT_PINNED = false;
+      let AGENT = "claude", HAS_CODEX = false, AGENT_PINNED = false, COACHING = true;
       function updateAgentPicker() {
         document.querySelectorAll(".agent-sel").forEach((sel) => {
           sel.style.display = HAS_CODEX ? "inline-block" : "none";
@@ -384,7 +384,9 @@
           if (s.est) for (const [k, v] of Object.entries(s.est)) { EST[k] = v.usd; EST_TOK[k] = v.tokens; EST_N[k] = v.n; }
           AUTO = !!s.autoSpend;
           HAS_CODEX = !!s.codex;
+          COACHING = s.coaching !== false;
           if (!AGENT_PINNED && s.defaultAgent) AGENT = s.defaultAgent; // honor the configured default until the user picks
+          const cp = document.getElementById("coachPanel"); if (cp) cp.style.display = COACHING ? "" : "none";
           updateAgentPicker(); reflectAuto(); applyUnits(); renderBurnbar();
         } catch (e) { /* ignore */ }
       }
@@ -618,7 +620,7 @@
 
           <div id="agent"></div>
 
-          <section class="panel">
+          <section class="panel" id="coachPanel"${COACHING ? "" : ' style="display:none"'}>
             <h3>Learn as you close this <span class="nt">· level up ticket by ticket</span></h3>
             <div id="coach"><span class="ungathered">— gather full context to learn</span></div>
           </section>`;

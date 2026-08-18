@@ -83,7 +83,20 @@ dontpanic's defaults are opinions, and you can override them without touching co
 
 If a file is absent, the built-in default is used. `dontpanic doctor` shows which are active, and the "view the exact prompt" panel in the UI reflects them.
 
-Structured settings live in `~/.dontpanic/config.json`: `repos`, `signalChannels`, `budget` (daily $/token caps), `models` (per-job model), `defaultAgent` (`claude`/`codex`), `autoSpend`.
+Structured settings live in `~/.dontpanic/config.json`:
+
+| Key | What it controls |
+|---|---|
+| `repos`, `me` | Which repos to watch, and your GitHub login |
+| `signalChannels` | Slack channels searched for incident/customer signal |
+| `budget` | Daily $ and token caps shown in the UI |
+| `models` | Per-job model (`enrich`, `prioritize`, `brief`, `meeting`, `ping`) |
+| `defaultAgent` | `claude` or `codex` for review/fix (picker overrides per-launch) |
+| `autoSpend` | Auto-run the reasoning reads vs. click every spend |
+| `workday` | `{ "start": "09:00", "focusHours": 8 }` — the day timeline |
+| `turnOrder` | Order your court is worked, e.g. own-CI-first vs. reviews-first (a permutation of the 5 turns; invalid → default) |
+| `coaching` | `true`/`false` — show the "learn as you close this" element |
+| `repoTypes` | Per-repo change-type hint for non-JS/Python stacks, e.g. `{ "me/api": "backend" }` |
 
 ## License
 

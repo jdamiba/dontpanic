@@ -21,7 +21,14 @@ export interface Config {
   budget: { dailyUsd: number; dailyTokens: number }; // per-day spend caps shown in the UI
   autoSpend: boolean; // true = auto-run reasoning spends (prioritize/gather/rank); false = every spend is a click
   models: Models; // per-job model selection
+  workday: { start: string; focusHours: number }; // day timeline: when focus starts + how many focus hours
+  turnOrder: string[]; // order the ball-in-court turns are worked (a permutation of the 5 actionable turns)
+  coaching: boolean; // show the "learn as you close this" coaching element
+  repoTypes: Record<string, string>; // per-repo change-type override: "owner/name" -> frontend|backend|mixed
 }
+
+// The 5 ball-in-court turns dontpanic acts on. turnOrder must be a permutation of these.
+export const ACTIONABLE_TURNS = ["mine_review", "mine_respond", "ready_merge", "mine_fix", "mine_request_review"];
 
 // State dir. New installs get ~/.dontpanic; existing ~/.prclear installs keep working.
 // Override with DONTPANIC_HOME.
@@ -46,6 +53,10 @@ const DEFAULT: Config = {
     ping: "claude-sonnet-5", // Slack user lookup + drafting
     brief: "claude-sonnet-5", // per-PR state + suggested changes (diff-fed, no tools)
   },
+  workday: { start: "09:00", focusHours: 8 },
+  turnOrder: [...ACTIONABLE_TURNS], // reviews/responses (things others asked of you) first
+  coaching: true,
+  repoTypes: {},
 };
 
 export function ensureDir(): void {
@@ -69,7 +80,16 @@ export function loadConfig(): Config {
     ...DEFAULT, ...file,
     budget: { ...DEFAULT.budget, ...(file.budget || {}) },
     models: { ...DEFAULT.models, ...(file.models || {}) },
+    workday: { ...DEFAULT.workday, ...(file.workday || {}) },
+    turnOrder: validTurnOrder(file.turnOrder),
   };
+}
+
+/** A configured turnOrder is only honored if it's a permutation of the 5 actionable turns. */
+function validTurnOrder(order?: string[]): string[] {
+  if (!Array.isArray(order) || order.length !== ACTIONABLE_TURNS.length) return [...ACTIONABLE_TURNS];
+  const set = new Set(order);
+  return ACTIONABLE_TURNS.every((t) => set.has(t)) ? order : [...ACTIONABLE_TURNS];
 }
 
 // Optional markdown files in the config dir that customize the AI prompts (like a

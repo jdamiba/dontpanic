@@ -14,32 +14,31 @@ export const TURN_PRIORITY: string[] = [
   "mine_request_review", // my PR needs a reviewer assigned
 ];
 
-export function isActionable(pr: StoredPr): boolean {
-  return TURN_PRIORITY.includes(pr.turn);
+export function isActionable(pr: StoredPr, order: string[] = TURN_PRIORITY): boolean {
+  return order.includes(pr.turn);
 }
 
 /** Lower is more urgent. Sort key: [turn priority, staleness]. */
-export function taskRank(pr: StoredPr): [number, number] {
-  const pri = TURN_PRIORITY.indexOf(pr.turn);
+export function taskRank(pr: StoredPr, order: string[] = TURN_PRIORITY): [number, number] {
+  const pri = order.indexOf(pr.turn);
   // Older gh_updated_at = more stale = more urgent → ascending timestamp.
   const staleness = pr.gh_updated_at ? Date.parse(pr.gh_updated_at) : Number.MAX_SAFE_INTEGER;
   return [pri < 0 ? Number.MAX_SAFE_INTEGER : pri, staleness];
 }
 
-function compareRank(a: StoredPr, b: StoredPr): number {
-  const ra = taskRank(a);
-  const rb = taskRank(b);
-  return ra[0] - rb[0] || ra[1] - rb[1];
-}
-
-/** All actionable tasks, most-important first. */
-export function rankTasks(rows: StoredPr[]): StoredPr[] {
-  return rows.filter(isActionable).sort(compareRank);
+/** All actionable tasks, most-important first (per the given turn order). */
+export function rankTasks(rows: StoredPr[], order: string[] = TURN_PRIORITY): StoredPr[] {
+  return rows
+    .filter((r) => isActionable(r, order))
+    .sort((a, b) => {
+      const ra = taskRank(a, order), rb = taskRank(b, order);
+      return ra[0] - rb[0] || ra[1] - rb[1];
+    });
 }
 
 /** The single most important thing to do right now, or null if the court is clear. */
-export function pickOneTask(rows: StoredPr[]): StoredPr | null {
-  return rankTasks(rows)[0] ?? null;
+export function pickOneTask(rows: StoredPr[], order: string[] = TURN_PRIORITY): StoredPr | null {
+  return rankTasks(rows, order)[0] ?? null;
 }
 
 // ---- day scheduling (all times = minutes since local midnight) ----
@@ -78,6 +77,7 @@ export function scheduleDay<T extends { mins: number }>(
   ranked: T[],
   meetings: Meeting[],
   startMin: number = DAY_START,
+  focusCap: number = FOCUS_CAP,
 ): DayPlan {
   const mtgs = [...meetings].sort((a, b) => parseHM(a.start) - parseHM(b.start));
   const day: Array<Record<string, unknown>> = [];
@@ -91,9 +91,9 @@ export function scheduleDay<T extends { mins: number }>(
     cursor = Math.max(cursor, parseHM(mtg.end));
     mi++;
   };
-  while (mi < mtgs.length || (ti < ranked.length && focusUsed < FOCUS_CAP)) {
+  while (mi < mtgs.length || (ti < ranked.length && focusUsed < focusCap)) {
     const nextMStart = mi < mtgs.length ? parseHM(mtgs[mi].start) : Infinity;
-    const canTask = ti < ranked.length && focusUsed < FOCUS_CAP;
+    const canTask = ti < ranked.length && focusUsed < focusCap;
     if (mi < mtgs.length && cursor >= nextMStart) { placeMeeting(); continue; }
     if (canTask) {
       const t = ranked[ti];

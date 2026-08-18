@@ -54,6 +54,19 @@ describe("planner", () => {
   it("returns null when nothing is in my court", () => {
     expect(pickOneTask([row({ turn: "theirs_review" }), row({ turn: "done" })])).toBeNull();
   });
+
+  it("honors a custom turn order (own-fixes-first)", () => {
+    const ownFirst = ["mine_fix", "mine_respond", "ready_merge", "mine_review", "mine_request_review"];
+    const rows = [
+      row({ number: 1, turn: "mine_fix" }),
+      row({ number: 2, turn: "mine_review", role: "reviewer" }),
+    ];
+    // default: review first
+    expect(pickOneTask(rows)?.number).toBe(2);
+    // custom: fixes first
+    expect(pickOneTask(rows, ownFirst)?.number).toBe(1);
+    expect(rankTasks(rows, ownFirst).map((r) => r.number)).toEqual([1, 2]);
+  });
 });
 
 function mtg(overrides: Partial<Meeting> = {}): Meeting {
@@ -95,5 +108,12 @@ describe("scheduleDay", () => {
   it("court-zero lands startMin + focus time later", () => {
     const { courtZero } = scheduleDay([task(1, 45)], [], 11 * 60);
     expect(courtZero).toBe("11:45a");
+  });
+
+  it("honors a custom focus cap (shorter workday defers more)", () => {
+    const tasks = Array.from({ length: 6 }, (_, i) => task(i, 60)); // 6h of work
+    const { focusUsed, deferred } = scheduleDay(tasks, [], 9 * 60, 3 * 60); // 3h cap
+    expect(focusUsed).toBe(180);
+    expect(deferred).toBe(3);
   });
 });
