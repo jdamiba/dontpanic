@@ -1,7 +1,7 @@
 {
   "name": "@jdamiba/dontpanic",
   "version": "0.1.0",
-  "description": "A calm command center + coach for clearing your agentic-coding PR backlog — review, fix, and prioritize PRs by customer impact, driven by your own Claude connectors.",
+  "description": "Learn agentic development hands-on — how to manage context and manage coding agents — using your real PR backlog as the practice ground. Runs on your own Claude Code CLI + gh.",
   "type": "module",
   "bin": {
     "dontpanic": "dist/cli.js"

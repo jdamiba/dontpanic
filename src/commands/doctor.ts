@@ -29,18 +29,22 @@ async function connectorStatus(): Promise<Record<string, boolean> | null> {
 /** What dontpanic is + the token deal. Shown at the top of onboarding. */
 export function welcome(): void {
   console.log(`
-don'tpanic — a calm command center + coach for clearing your PR backlog.
+don'tpanic — learn agentic development on your real PR backlog: how to manage
+context, and how to manage agents.
 
-When you run  dontpanic dashboard  it:
-  • fetches your open PRs, the reviews you owe, and (on request) your calendar
-  • picks the single highest-impact thing to work on — and tells you WHY
-  • briefs you on each PR's state + the changes it needs
-  • deploys + monitors an agent to review or fix it — you approve every write
+Each task in  dontpanic dashboard  teaches the loop that matters:
+  • MANAGE CONTEXT — gather what an agent needs, see what's missing, and read
+    the exact prompt it will run
+  • MANAGE AGENTS — launch a review/fix agent, watch its reasoning stream, and
+    approve every write yourself (pick Claude or Codex per task)
+  • MANAGE SPEND — every AI action is priced against your daily limit, so cost
+    control becomes a habit
+  • LEVEL UP — each task surfaces a CS/systems/process lesson from the real diff
 
 It drives your own tools: GitHub via  gh , and reasoning/agents via the
  claude  CLI, reusing your claude.ai connectors (Slack, Linear, Calendar).
 No tokens of its own. GitHub data is FREE; every AI action is a clearly-priced,
-human-gated click, shown against your daily limit (set in ${DIR}/config.json).
+human-gated click (limit set in ${DIR}/config.json).
 `);
 }
 

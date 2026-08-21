@@ -1,28 +1,30 @@
 # dontpanic
 
-**A calm command center + coach for clearing your agentic-coding PR backlog.**
+**A hands-on way to learn agentic development — how to manage context and how to manage agents.**
 
-dontpanic pulls your open pull requests — the ones you authored and the ones you owe reviews on — and helps you clear them: it picks the highest-**customer-impact** thing to do next and says why, briefs you on each PR's state and the changes it needs, and launches an agent to **review** or **fix** it while you supervise. You approve every write.
+Working with coding agents well comes down to two skills: giving an agent the **right context**, and **supervising** it as it works. dontpanic is built to teach both — using the best practice ground you already have, your open pull-request backlog.
 
-It has no API keys of its own. All the AI work is done by shelling out to your **Claude Code CLI**, reusing *your* authenticated claude.ai connectors (Slack, Linear, Google Calendar) and GitHub via `gh`. That means GitHub data is free, and every token-spending action is a clearly-priced button — dontpanic never spends without you clicking.
+Every task walks you through the loop that matters: gather the context an agent needs and **see what's missing**, watch how that context shapes the prompt, then **launch, monitor, and approve** an agent — reading its reasoning as it streams, and deciding every write yourself. You practice on real PRs (reviews you owe, fixes you need), so the skills transfer directly to your day job. You come out better at agentic development; your backlog comes out cleared.
+
+It has no API keys of its own. All the AI work runs through your **Claude Code CLI**, reusing *your* authenticated claude.ai connectors (Slack, Linear, Google Calendar) and GitHub via `gh`. GitHub data is free, and — because learning to **manage agent spend** is part of the skill — every token-spending action is a clearly-priced button shown against your daily limit. dontpanic never spends without you clicking.
 
 ---
 
 ## Screenshots
 
-**The Board** — every PR in your court, ranked by customer impact, each with a per-PR brief (state + suggested changes):
+**The Board** — your practice queue: every PR in your court, with a per-PR brief so you learn to size up a task before spending anything:
 
 ![Board](assets/board.png)
 
-**Now** — a single-task cockpit: a day timeline, why-this-is-first, missing-context flags, and orientation:
+**Now — managing context** — gather what the agent needs, see what's still missing, and read the exact prompt it will run:
 
 ![Now cockpit](assets/now.png)
 
-**Launch an agent** — it streams its reasoning live, then drafts a cited verdict you approve (or not):
+**Managing an agent** — launch it, watch its reasoning stream live, then approve (or reject) the cited verdict — you decide every write:
 
 ![Agent streaming](assets/agent.png)
 
-**Parallel** — resolve several PRs side by side, each with its own gated approve/push:
+**Supervising several at once** — the parallel grid, each agent with its own gated approve/push:
 
 ![Parallel resolution](assets/parallel.png)
 
@@ -84,13 +86,19 @@ Set your daily caps and per-job models in `~/.dontpanic/config.json` (`budget`, 
 
 ---
 
-## What it can do
+## What it teaches (and the feature that teaches it)
 
-- **Board** — every PR in your court, ranked by customer impact, with a per-PR brief (state + suggested changes).
-- **Now** — a single-task cockpit: orientation, acceptance criteria, missing-context flags, and a launch-an-agent panel that streams the agent's reasoning live.
-- **Parallel** — select several PRs and resolve them side by side, each with its own gated approve/push.
+**Managing context** — the input side of agentic work:
+- **Now** — a single-task cockpit that makes you gather the context an agent needs, **flags what's still missing**, and shows how it all feeds the prompt (there's a "view the exact prompt the agent runs" panel).
+- **Board** — reads a per-PR brief (state + what the change needs) so you learn to size up a task before spending anything.
+
+**Managing agents** — the supervision side:
+- **Launch → monitor → approve** — deploy a review or fix agent, watch its reasoning **stream live**, then approve (or reject) every GitHub write yourself. Pick the model/backend (Claude or Codex) for the job.
+- **Parallel** — practice supervising *several* agents at once, each with its own gated approve/push.
 - **Burndown** — supervise an agent working down the whole court, one task at a time.
-- **Coach** — each task surfaces a CS/process lesson so you get better at agentic coding as you clear the backlog.
+- **Spend as a first-class signal** — every action is priced against a daily limit, so managing an agent's cost becomes a habit, not an afterthought.
+
+**Coaching** — each task surfaces a CS / systems / process lesson grounded in the actual diff, so you level up on the fundamentals as you go (toggle off in config).
 
 ---
 
