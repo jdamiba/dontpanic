@@ -1,10 +1,12 @@
 # dontpanic
 
-**A hands-on way to learn agentic development — how to manage context and how to manage agents.**
+**Fifteen years ago, the smart way into building software was fizzbuzz, data structures, and CS fundamentals. Today, the fastest way in is learning to work with agents.**
 
-Working with coding agents well comes down to two skills: giving an agent the **right context**, and **supervising** it as it works. dontpanic is built to teach both — using the best practice ground you already have, your open pull-request backlog.
+The on-ramp changed. If you're starting from zero, the highest-leverage skill isn't hand-writing algorithms — it's learning to **direct agents** to build what you want: giving them the **right context** and **supervising** their work. And if you already code, that's the new layer on top. dontpanic is a hands-on way to build that skill.
 
-Every task walks you through the loop that matters: gather the context an agent needs and **see what's missing**, watch how that context shapes the prompt, then **launch, monitor, and approve** an agent — reading its reasoning as it streams, and deciding every write yourself. You practice on real PRs (reviews you owe, fixes you need), so the skills transfer directly to your day job. You come out better at agentic development; your backlog comes out cleared.
+It teaches the loop that matters: gather the context an agent needs and **see what's missing**, watch how that context shapes the prompt, then **launch, monitor, and approve** an agent — reading its reasoning as it streams, deciding every write yourself.
+
+**Today** it runs on your open pull requests (reviews you owe, fixes you need) — real work as the practice ground, so the skill transfers directly. **On the way:** a guided practice track (generic lessons for people starting from zero) and bring-your-own open-source agent, so you can learn even before you have a codebase or connectors of your own.
 
 It has no API keys of its own. All the AI work runs through your **Claude Code CLI**, reusing *your* authenticated claude.ai connectors (Slack, Linear, Google Calendar) and GitHub via `gh`. GitHub data is free, and — because learning to **manage agent spend** is part of the skill — every token-spending action is a clearly-priced button shown against your daily limit. dontpanic never spends without you clicking.
 
