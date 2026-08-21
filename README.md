@@ -8,6 +8,28 @@ It has no API keys of its own. All the AI work is done by shelling out to your *
 
 ---
 
+## Screenshots
+
+**The Board** — every PR in your court, ranked by customer impact, each with a per-PR brief (state + suggested changes):
+
+![Board](assets/board.png)
+
+**Now** — a single-task cockpit: a day timeline, why-this-is-first, missing-context flags, and orientation:
+
+![Now cockpit](assets/now.png)
+
+**Launch an agent** — it streams its reasoning live, then drafts a cited verdict you approve (or not):
+
+![Agent streaming](assets/agent.png)
+
+**Parallel** — resolve several PRs side by side, each with its own gated approve/push:
+
+![Parallel resolution](assets/parallel.png)
+
+> Try the UI yourself with no setup or tokens: `dontpanic dashboard --demo` (canned data).
+
+---
+
 ## Prerequisites
 
 dontpanic drives tools you already have. Before it can do anything useful:

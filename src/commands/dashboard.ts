@@ -92,7 +92,8 @@ function parse(p: StoredPr) {
   };
 }
 
-export async function startDashboard(port: number, syncOnStart = true): Promise<void> {
+export async function startDashboard(port: number, syncOnStart = true, demo = false): Promise<void> {
+  if (demo) { const { startDemoDashboard } = await import("./demo.js"); return startDemoDashboard(port, join(__dirname, "public")); }
   if (syncOnStart) {
     console.log("Fetching your responsibilities, requests, and calendar (free — GitHub only)…");
     try { await runSync(); } catch (e) { console.log("  (sync failed, using last data): " + String((e as Error).message).slice(0, 80)); }

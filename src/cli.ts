@@ -77,9 +77,10 @@ program
   .description("Start the dashboard — fetches PRs + calendar, then serves")
   .option("-p, --port <n>", "port", "4711")
   .option("--no-sync", "skip the startup sync (use existing data)")
-  .action(async (opts: { port: string; sync: boolean }) => {
-    if (!requireConfigured()) return;
-    await startDashboard(Number(opts.port), opts.sync);
+  .option("--demo", "serve canned fixtures (no gh/claude, no spend) — for screenshots/trying the UI")
+  .action(async (opts: { port: string; sync: boolean; demo?: boolean }) => {
+    if (!opts.demo && !requireConfigured()) return;
+    await startDashboard(Number(opts.port), opts.sync, opts.demo);
   });
 
 program.parseAsync(process.argv);
