@@ -18,23 +18,23 @@ It has no API keys of its own. All the AI work runs through your **Claude Code C
 
 **The Board** — your practice queue: everything in your court, ranked by impact, each with a plain-language "why this one" so you learn to size up a task before spending anything:
 
-![Board](assets/board.png)
+![Board](assets/board-v2.png)
 
 **Now — managing context** — one task at a time: what it is in plain English, what's still undecided, and a timeline that keeps the current task centered:
 
-![Now cockpit](assets/now.png)
+![Now cockpit](assets/now-v2.png)
 
 **Learning as you go** — every task surfaces a small lesson grounded in the actual change (here: *text vs. numbers*), right next to the priced "launch the agent" button:
 
-![Coaching lesson](assets/coach.png)
+![Coaching lesson](assets/coach-v2.png)
 
 **Managing an agent** — launch it, watch its reasoning stream live, read the diff it proposes, then approve — nothing is pushed until you click:
 
-![Agent streaming](assets/agent.png)
+![Agent streaming](assets/agent-v2.png)
 
 **Supervising several at once** — the parallel grid, each agent working its own task with its own gated approve/push:
 
-![Parallel resolution](assets/parallel.png)
+![Parallel resolution](assets/parallel-v2.png)
 
 ---
 
