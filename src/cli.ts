@@ -16,7 +16,7 @@ function requireConfigured(): boolean {
 }
 
 const program = new Command();
-program.name("dontpanic").description("A calm command center + coach for clearing your agentic backlog").version("0.1.0");
+program.name("dontpanic").description("Learn agentic development on your real PR backlog — manage context, manage agents.").version("0.1.0");
 
 // Guided onboarding: explain → check prerequisites (actionable) → configure → point to launch.
 async function onboard(): Promise<void> {
