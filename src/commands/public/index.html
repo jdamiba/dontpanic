@@ -370,7 +370,7 @@
         const top = court[0];
         const rest = court.slice(1);
         const rankSlot = IMPMAP
-          ? `<span class="ranked-note">✓ ranked by customer impact</span>`
+          ? `<span class="ranked-note">✓ ranked by impact</span>`
           : `<button class="btn-rank" id="rankBtn">🧠 Rank by impact · <span class="cost" data-cost="prioritize"></span></button><span class="cost-note">reasons over your queue</span>`;
 
         const heroHtml = top
@@ -391,7 +391,7 @@
           ${briefBar()}
           <div id="burnConfirm" class="burn-confirm" style="display:none"></div>
           ${heroHtml}
-          ${rest.length ? `<h2>Also in your court <span class="nt">· ${IMPMAP ? "impact-ranked" : "heuristic order — rank by impact to sort by customer impact"}</span></h2>${restHtml}` : ""}
+          ${rest.length ? `<h2>Also in your court <span class="nt">· ${IMPMAP ? "impact-ranked" : "heuristic order — rank by impact"}</span></h2>${restHtml}` : ""}
           <h2>Waiting on others <span class="nt">· the ball's not in your court</span></h2>
           ${waitHtml}`;
         const rb = document.getElementById("rankBtn");
@@ -483,7 +483,7 @@
           slot.innerHTML = `<span class="burn-note">⚠ Couldn't reach GitHub just now — showing last-synced data.</span> <button class="btn-cancel" id="rsClose">close</button>`;
         } else {
           const est = UNIT === "tok" ? `~${fmtTok(EST_TOK.prioritize || 0)} tok` : `~$${(EST.prioritize || 0).toFixed(2)}`;
-          slot.innerHTML = `<span class="burn-note">✓ Resynced from GitHub. Re-rank your court by <b>customer impact</b>?</span> <button class="btn-rank" id="rsRank">🧠 Rank by impact · ${est}</button> <button class="btn-cancel" id="rsClose">not now</button>`;
+          slot.innerHTML = `<span class="burn-note">✓ Resynced from GitHub. Re-rank your court by <b>impact</b>?</span> <button class="btn-rank" id="rsRank">🧠 Rank by impact · ${est}</button> <button class="btn-cancel" id="rsClose">not now</button>`;
           document.getElementById("rsRank").onclick = () => { slot.style.display = "none"; slot.innerHTML = ""; rankByImpact(); };
         }
         document.getElementById("rsClose").onclick = () => { slot.style.display = "none"; slot.innerHTML = ""; };

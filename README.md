@@ -12,25 +12,29 @@ It has no API keys of its own. All the AI work runs through your **Claude Code C
 
 ---
 
+> The screenshots below are from **demo mode** — a tiny, beginner-friendly example (building a recipe app with a friend). Everything you see is a real page; run it yourself with `dontpanic dashboard --demo` (no setup, no tokens).
+
 ## Screenshots
 
-**The Board** — your practice queue: every PR in your court, with a per-PR brief so you learn to size up a task before spending anything:
+**The Board** — your practice queue: everything in your court, ranked by impact, each with a plain-language "why this one" so you learn to size up a task before spending anything:
 
 ![Board](assets/board.png)
 
-**Now — managing context** — gather what the agent needs, see what's still missing, and read the exact prompt it will run:
+**Now — managing context** — one task at a time: what it is in plain English, what's still undecided, and a timeline that keeps the current task centered:
 
 ![Now cockpit](assets/now.png)
 
-**Managing an agent** — launch it, watch its reasoning stream live, then approve (or reject) the cited verdict — you decide every write:
+**Learning as you go** — every task surfaces a small lesson grounded in the actual change (here: *text vs. numbers*), right next to the priced "launch the agent" button:
+
+![Coaching lesson](assets/coach.png)
+
+**Managing an agent** — launch it, watch its reasoning stream live, read the diff it proposes, then approve — nothing is pushed until you click:
 
 ![Agent streaming](assets/agent.png)
 
-**Supervising several at once** — the parallel grid, each agent with its own gated approve/push:
+**Supervising several at once** — the parallel grid, each agent working its own task with its own gated approve/push:
 
 ![Parallel resolution](assets/parallel.png)
-
-> Try the UI yourself with no setup or tokens: `dontpanic dashboard --demo` (canned data).
 
 ---
 

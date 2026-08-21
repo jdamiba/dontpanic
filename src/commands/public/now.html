@@ -399,7 +399,7 @@
       }
       async function doPrioritize(task) {
         const el = document.getElementById("priority");
-        el.innerHTML = `<div class="prio"><span class="gathering">🧠 prioritizing by customer impact…</span></div>`;
+        el.innerHTML = `<div class="prio"><span class="gathering">🧠 working out what matters most…</span></div>`;
         let p;
         try { p = await (await fetch("/api/priority", { method: "POST" })).json(); } catch (e) { el.innerHTML = ""; return; }
         fetchStatus();
